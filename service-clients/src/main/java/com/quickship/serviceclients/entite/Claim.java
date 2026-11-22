@@ -4,12 +4,13 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "claim")
+@Table(name = "claim", uniqueConstraints = @UniqueConstraint(columnNames = "shipmentId"))
 public class Claim {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long customerId;
+    @Column(nullable = false, unique = true)
     private Long shipmentId;
     private String description;
     private BigDecimal montant;

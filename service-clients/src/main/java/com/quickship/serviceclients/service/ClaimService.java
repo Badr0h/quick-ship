@@ -57,6 +57,23 @@ public class ClaimService {
     }
 
     @Transactional
+    public Claim update(Long id, Claim incoming) {
+        Claim claim = getById(id);
+        if (incoming.getDescription() != null && !incoming.getDescription().isBlank()) {
+            claim.setDescription(incoming.getDescription());
+        }
+        if (incoming.getStatut() != null && !incoming.getStatut().isBlank()) {
+            claim.setStatut(incoming.getStatut());
+        }
+        return claimRepository.save(claim);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        claimRepository.delete(getById(id));
+    }
+
+    @Transactional
     public Claim ouvrirPourShipment(Long customerId, Long shipmentId, String description) {
         Claim claim = new Claim();
         claim.setCustomerId(customerId);

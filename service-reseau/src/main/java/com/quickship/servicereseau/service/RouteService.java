@@ -28,7 +28,8 @@ public class RouteService {
 
     @Transactional
     public Route reserverCapacite(Long id) {
-        Route r = getById(id);
+        Route r = routeRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new RessourceIntrouvableException("Route introuvable"));
         if (r.getCapaciteReservee() >= r.getCapaciteColis()) {
             throw new IllegalArgumentException("Capacité de la tournée saturée");
         }
@@ -38,7 +39,8 @@ public class RouteService {
 
     @Transactional
     public Route libererCapacite(Long id) {
-        Route r = getById(id);
+        Route r = routeRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new RessourceIntrouvableException("Route introuvable"));
         if (r.getCapaciteReservee() <= 0) {
             return r;
         }

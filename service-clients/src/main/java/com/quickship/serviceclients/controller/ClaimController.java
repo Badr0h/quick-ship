@@ -42,4 +42,15 @@ public class ClaimController {
         Claim claim = claimService.create(claimMapper.toEntity(dto));
         return ResponseEntity.created(URI.create("/claims/" + claim.getId())).body(claimMapper.toDto(claim));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ClaimDto> update(@PathVariable Long id, @Valid @RequestBody ClaimDto dto) {
+        return ResponseEntity.ok(claimMapper.toDto(claimService.update(id, claimMapper.toEntity(dto))));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        claimService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

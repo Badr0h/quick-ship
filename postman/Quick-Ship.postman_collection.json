@@ -1,11 +1,18 @@
 {
   "info": {
     "name": "Quick-Ship",
+    "description": "Collection jalons V1–V6 (main / RabbitMQ). Sur branche v7.0, mêmes URLs ; capacité/encours/claim transitent via Kafka.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "gateway", "value": "http://localhost:8080" },
-    { "key": "idempotencyKey", "value": "test-key-001" }
+    { "key": "idempotencyKey", "value": "test-key-001" },
+    { "key": "customerId", "value": "1" },
+    { "key": "routeId", "value": "1" },
+    { "key": "shipmentId", "value": "1" },
+    { "key": "trackingId", "value": "1" },
+    { "key": "claimId", "value": "1" },
+    { "key": "depotId", "value": "1" }
   ],
   "item": [
     {
@@ -29,6 +36,25 @@
             },
             "url": "{{gateway}}/service-clients/customers/new"
           }
+        },
+        {
+          "name": "Get customer",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-clients/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Update customer",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Agadir Freight SA\",\n  \"email\": \"agadir@example.com\",\n  \"encours\": 0,\n  \"plafondCredit\": 20000,\n  \"statut\": \"ACTIF\"\n}"
+            },
+            "url": "{{gateway}}/service-clients/customers/{{customerId}}"
+          }
         }
       ]
     },
@@ -36,12 +62,32 @@
       "name": "V1 Reseau",
       "item": [
         {
+          "name": "Create depot",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Depot Casa\",\n  \"ville\": \"Casablanca\",\n  \"capacite\": 500\n}"
+            },
+            "url": "{{gateway}}/service-reseau/depots/new"
+          }
+        },
+        {
           "name": "List depots",
           "request": { "method": "GET", "url": "{{gateway}}/service-reseau/depots" }
         },
         {
-          "name": "List routes",
-          "request": { "method": "GET", "url": "{{gateway}}/service-reseau/routes" }
+          "name": "Update depot",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Depot Casa Nord\",\n  \"ville\": \"Casablanca\",\n  \"capacite\": 600\n}"
+            },
+            "url": "{{gateway}}/service-reseau/depots/{{depotId}}"
+          }
         },
         {
           "name": "Create route",
@@ -53,6 +99,22 @@
               "raw": "{\n  \"nom\": \"Casa-Tanger\",\n  \"villeDepart\": \"Casablanca\",\n  \"villeArrivee\": \"Tanger\",\n  \"dateDepart\": \"2026-12-01\",\n  \"dureeEstimee\": 6,\n  \"capaciteColis\": 20,\n  \"capaciteReservee\": 0\n}"
             },
             "url": "{{gateway}}/service-reseau/routes/new"
+          }
+        },
+        {
+          "name": "List routes",
+          "request": { "method": "GET", "url": "{{gateway}}/service-reseau/routes" }
+        },
+        {
+          "name": "Update route",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Casa-Tanger Express\",\n  \"villeDepart\": \"Casablanca\",\n  \"villeArrivee\": \"Tanger\",\n  \"dateDepart\": \"2026-12-01\",\n  \"dureeEstimee\": 5,\n  \"capaciteColis\": 25,\n  \"capaciteReservee\": 0\n}"
+            },
+            "url": "{{gateway}}/service-reseau/routes/{{routeId}}"
           }
         }
       ]
@@ -70,30 +132,71 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": 1,\n  \"destinataireNom\": \"Sara Alami\",\n  \"adresseDestinataire\": \"Avenue Mohammed V, Rabat\",\n  \"poids\": 8.5,\n  \"routeId\": 1\n}"
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"destinataireNom\": \"Sara Alami\",\n  \"adresseDestinataire\": \"Boulevard Mohammed VI, Tanger\",\n  \"poids\": 8.5,\n  \"routeId\": {{routeId}}\n}"
             },
             "url": "{{gateway}}/service-expeditions/shipments/new"
+          }
+        },
+        {
+          "name": "Create shipment - destination invalide (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "idempotencyKey", "value": "dest-invalide-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"destinataireNom\": \"Sara Alami\",\n  \"adresseDestinataire\": \"Avenue Mohammed V, Rabat\",\n  \"poids\": 8.5,\n  \"routeId\": {{routeId}}\n}"
+            },
+            "url": "{{gateway}}/service-expeditions/shipments/new"
+          }
+        },
+        {
+          "name": "Update shipment",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"destinataireNom\": \"Sara Alami\",\n  \"adresseDestinataire\": \"Zone Franche, Tanger\",\n  \"poids\": 9.0,\n  \"routeId\": {{routeId}}\n}"
+            },
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}"
           }
         },
         {
           "name": "Depart shipment",
           "request": {
             "method": "POST",
-            "url": "{{gateway}}/service-expeditions/shipments/2/depart"
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}/depart"
           }
         },
         {
           "name": "Livrer shipment",
           "request": {
             "method": "POST",
-            "url": "{{gateway}}/service-expeditions/shipments/2/livrer"
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}/livrer"
           }
         },
         {
-          "name": "Consultation enrichie",
+          "name": "Retour shipment",
+          "request": {
+            "method": "POST",
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}/retour"
+          }
+        },
+        {
+          "name": "Perdu shipment",
+          "request": {
+            "method": "POST",
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}/perdu"
+          }
+        },
+        {
+          "name": "Consultation enrichie /full",
           "request": {
             "method": "GET",
-            "url": "{{gateway}}/service-expeditions/shipments/2/full"
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}/full"
           }
         },
         {
@@ -103,9 +206,143 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"shipmentId\": 2,\n  \"localisation\": \"Kenitra\",\n  \"commentaire\": \"Passage hub\"\n}"
+              "raw": "{\n  \"shipmentId\": {{shipmentId}},\n  \"localisation\": \"Hub Casa\",\n  \"commentaire\": \"Scan départ\"\n}"
             },
             "url": "{{gateway}}/service-expeditions/tracking/new"
+          }
+        },
+        {
+          "name": "Update tracking",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipmentId\": {{shipmentId}},\n  \"localisation\": \"Hub Tanger\",\n  \"commentaire\": \"Arrivée hub\"\n}"
+            },
+            "url": "{{gateway}}/service-expeditions/tracking/{{trackingId}}"
+          }
+        },
+        {
+          "name": "List tracking by shipment",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-expeditions/tracking/shipment/{{shipmentId}}"
+          }
+        },
+        {
+          "name": "Delete tracking",
+          "request": {
+            "method": "DELETE",
+            "url": "{{gateway}}/service-expeditions/tracking/{{trackingId}}"
+          }
+        },
+        {
+          "name": "Delete shipment (EN_ATTENTE only)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4 Claims",
+      "item": [
+        {
+          "name": "Create claim",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"shipmentId\": {{shipmentId}},\n  \"description\": \"Colis endommagé à la livraison\",\n  \"statut\": \"OUVERTE\"\n}"
+            },
+            "url": "{{gateway}}/service-clients/claims/new"
+          }
+        },
+        {
+          "name": "List claims",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-clients/claims"
+          }
+        },
+        {
+          "name": "Claims by shipment",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-clients/claims/by-shipment/{{shipmentId}}"
+          }
+        },
+        {
+          "name": "Update claim",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"shipmentId\": {{shipmentId}},\n  \"description\": \"Colis endommagé — dossier complété\",\n  \"statut\": \"EN_COURS\"\n}"
+            },
+            "url": "{{gateway}}/service-clients/claims/{{claimId}}"
+          }
+        },
+        {
+          "name": "Delete claim",
+          "request": {
+            "method": "DELETE",
+            "url": "{{gateway}}/service-clients/claims/{{claimId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "V6 Idempotence & Resilience",
+      "item": [
+        {
+          "name": "Create shipment - même idempotencyKey (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "idempotencyKey", "value": "{{idempotencyKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"destinataireNom\": \"Sara Alami\",\n  \"adresseDestinataire\": \"Boulevard Mohammed VI, Tanger\",\n  \"poids\": 8.5,\n  \"routeId\": {{routeId}}\n}"
+            },
+            "url": "{{gateway}}/service-expeditions/shipments/new"
+          }
+        },
+        {
+          "name": "Consultation /full (RateLimiter)",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}/full"
+          }
+        },
+        {
+          "name": "Consultation /full x2 rapide (2e peut être dégradée)",
+          "description": "Régler temporairement limit-for-period=1 et limit-refresh-period=10s (TP V6 §6), redémarrer service-expeditions, puis envoyer deux GET : le 2e renvoie données locales seules.",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-expeditions/shipments/{{shipmentId}}/full"
+          }
+        },
+        {
+          "name": "Create shipment - clients down (503)",
+          "description": "Arrêter service-clients puis exécuter : attendu HTTP 503 ServiceExterneIndisponible (TP V6).",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "idempotencyKey", "value": "resilience-503-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": {{customerId}},\n  \"destinataireNom\": \"Sara Alami\",\n  \"adresseDestinataire\": \"Boulevard Mohammed VI, Tanger\",\n  \"poids\": 8.5,\n  \"routeId\": {{routeId}}\n}"
+            },
+            "url": "{{gateway}}/service-expeditions/shipments/new"
           }
         }
       ]
