@@ -209,12 +209,76 @@ public class ShipmentService {
     }
 
     @Transactional
+    public Shipment update(Long id, CreateShipmentDto dto) {
+        Shipment s = getById(id);
+        if (s.getStatut() != StatutShipment.EN_ATTENTE) {
+            throw new IllegalArgumentException("Modification autorisée uniquement en EN_ATTENTE");
+        }
+        CustomerDto customer = resilientRequests.getCustomerByIdStrict(dto.getCustomerId());
+        if (!"ACTIF".equalsIgnoreCase(customer.getStatut())) {
+            throw new IllegalArgumentException("Compte expéditeur suspendu");
+        }
+        RouteDto route = resilientRequests.getRouteByIdStrict(dto.getRouteId());
+        verifierDestination(dto.getAdresseDestinataire(), route);
+        BigDecimal montant = BigDecimal.valueOf(dto.getPoids())
+                .multiply(BigDecimal.TEN)
+                .add(BigDecimal.valueOf(50))
+                .setScale(2, RoundingMode.HALF_UP);
+        if (customer.getEncours().add(montant).compareTo(customer.getPlafondCredit()) > 0) {
+            throw new IllegalArgumentException("Plafond de crédit dépassé");
+        }
+        if (!s.getRouteId().equals(dto.getRouteId())) {
+            throw new IllegalArgumentException("Changement de tournée interdit après création (capacité via Kafka)");
+        }
+        s.setCustomerId(dto.getCustomerId());
+        s.setDestinataireNom(dto.getDestinataireNom());
+        s.setAdresseDestinataire(dto.getAdresseDestinataire());
+        s.setPoids(dto.getPoids());
+        s.setMontantTransport(montant);
+        return shipmentRepository.save(s);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Shipment s = getById(id);
+        if (s.getStatut() != StatutShipment.EN_ATTENTE) {
+            throw new IllegalArgumentException("Suppression autorisée uniquement en EN_ATTENTE");
+        }
+        if (s.isCapaciteReservee()) {
+            throw new IllegalArgumentException(
+                    "Capacité déjà réservée : utiliser retour/perdu pour libérer via Kafka, ou attendre un rejet");
+        }
+        trackingEntryRepository.findByShipmentIdOrderByDateAsc(id)
+                .forEach(trackingEntryRepository::delete);
+        shipmentRepository.delete(s);
+    }
+
+    @Transactional
     public TrackingEntry addTracking(TrackingEntryDto dto) {
         getById(dto.getShipmentId());
         TrackingEntry t = trackingEntryMapper.toEntity(dto);
         t.setId(null);
         if (t.getDate() == null) t.setDate(LocalDateTime.now());
         return trackingEntryRepository.save(t);
+    }
+
+    @Transactional
+    public TrackingEntry updateTracking(Long id, TrackingEntryDto dto) {
+        TrackingEntry t = trackingEntryRepository.findById(id)
+                .orElseThrow(() -> new RessourceIntrouvableException("Tracking introuvable"));
+        getById(dto.getShipmentId());
+        t.setShipmentId(dto.getShipmentId());
+        if (dto.getDate() != null) t.setDate(dto.getDate());
+        t.setLocalisation(dto.getLocalisation());
+        t.setCommentaire(dto.getCommentaire());
+        return trackingEntryRepository.save(t);
+    }
+
+    @Transactional
+    public void deleteTracking(Long id) {
+        TrackingEntry t = trackingEntryRepository.findById(id)
+                .orElseThrow(() -> new RessourceIntrouvableException("Tracking introuvable"));
+        trackingEntryRepository.delete(t);
     }
 
     public List<TrackingEntry> getTracking(Long shipmentId) {

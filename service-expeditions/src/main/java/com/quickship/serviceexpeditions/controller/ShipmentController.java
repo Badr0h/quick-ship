@@ -47,6 +47,17 @@ public class ShipmentController {
                 .body(shipmentMapper.toDto(saved));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ShipmentDto> update(@PathVariable Long id, @Valid @RequestBody CreateShipmentDto dto) {
+        return ResponseEntity.ok(shipmentMapper.toDto(shipmentService.update(id, dto)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        shipmentService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/depart")
     public ResponseEntity<ShipmentDto> depart(@PathVariable Long id) {
         return ResponseEntity.ok(shipmentMapper.toDto(shipmentService.depart(id)));

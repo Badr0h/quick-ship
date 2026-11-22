@@ -32,4 +32,15 @@ public class TrackingController {
         return ResponseEntity.created(URI.create("/tracking/" + saved.getId()))
                 .body(trackingEntryMapper.toDto(saved));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TrackingEntryDto> update(@PathVariable Long id, @Valid @RequestBody TrackingEntryDto dto) {
+        return ResponseEntity.ok(trackingEntryMapper.toDto(shipmentService.updateTracking(id, dto)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        shipmentService.deleteTracking(id);
+        return ResponseEntity.noContent().build();
+    }
 }
