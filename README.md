@@ -70,7 +70,7 @@ Interfaces utiles :
 
 ## Règles métier clés
 
-- **Création colis** (`POST /shipments/new` + header `idempotencyKey`) : vérifie customer/encours/plafond, vérifie capacité tournée, réserve 1 unité, calcule `montantTransport = poids * 10 + 50`.
+- **Création colis** (`POST /shipments/new` + header `idempotencyKey`) : vérifie customer/encours/plafond, vérifie destination (`adresseDestinataire` contient `villeArrivee`), vérifie capacité tournée, réserve 1 unité, calcule `montantTransport = poids * 10 + 50`.
 - **Départ** : `EN_ATTENTE → EN_TRANSIT` sans second décompte de capacité.
 - **Livraison** : libère capacité une seule fois, augmente encours, notifie.
 - **Retour / Perdu** : libère capacité, ouvre **une seule** Claim, notifie.
@@ -86,17 +86,20 @@ Via Gateway (préfixe = nom du service Eureka en minuscules) :
 
 Collection Postman : [`postman/Quick-Ship.postman_collection.json`](postman/Quick-Ship.postman_collection.json)
 
-## Jalons
+## Jalons Classroom — tags & checkout
 
-| Jalon | Contenu |
-|-------|---------|
-| Init | Conception (ce README) |
-| V1 | CRUD Depot, Route, Customer |
-| V2 | Eureka + Gateway |
-| V3 | Config Server |
-| V4 | Shipment / Tracking / Claim + OpenFeign + consultation enrichie |
-| V5 | RabbitMQ + service-notification |
-| V6 | Resilience4j + ControllerAdvice + idempotence |
-| V7 | Kafka (branche séparée — à venir) |
+| Tag / branche | Contenu | Checkout |
+|---------------|---------|----------|
+| `v1.0` | CRUD Depot, Route, Customer | `git checkout v1.0` |
+| `v2.0` | Eureka + Gateway | `git checkout v2.0` |
+| `v3.0` | Config Server | `git checkout v3.0` |
+| `v4.0` | OpenFeign + consultation enrichie + destination | `git checkout v4.0` |
+| `v5.0` | RabbitMQ + service-notification | `git checkout v5.0` |
+| `v6.0` / branche `main` | Resilience4j (CB/Retry/Bulkhead/timeout) + RateLimiter consultation + ControllerAdvice + idempotence | `git checkout v6.0` ou `main` |
+| `v7.0-release` / branche `v7.0` | Kafka event-driven (remplace RabbitMQ) | `git checkout v7.0` |
+
+> **Historique** : l’implémentation V1→V6 a été livrée de façon consolidée puis taguée pour Classroom (pas de commits fantômes intermédiaires). Le tag `v6.0` pointe vers `main` à jour ; `v1.0`…`v5.0` marquent le même socle pour la remise par jalon.
+
+**Rate limiting (TP V6)** : Resilience4j `@RateLimiter("consultation")` sur `GET /shipments/{id}/full` dans `service-expeditions` (repli données locales). Pas de Redis/`RequestRateLimiter` Gateway — conforme au PDF TP V6.
 
 Docs sources : [`docs/`](docs/) · Fiche : [`docs/fiche-quick-ship.md`](docs/fiche-quick-ship.md)
