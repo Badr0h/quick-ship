@@ -32,10 +32,4 @@ public class RouteController {
     @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Long id) {
         routeService.delete(id); return ResponseEntity.noContent().build();
     }
-    @PostMapping("/{id}/reserver") public ResponseEntity<RouteDto> reserver(@PathVariable Long id) {
-        return ResponseEntity.ok(routeMapper.toDto(routeService.reserverCapacite(id)));
-    }
-    @PostMapping("/{id}/liberer") public ResponseEntity<RouteDto> liberer(@PathVariable Long id) {
-        return ResponseEntity.ok(routeMapper.toDto(routeService.libererCapacite(id)));
-    }
 }

@@ -74,6 +74,7 @@ public class ShipmentService {
         }
 
         RouteDto route = resilientRequests.getRouteByIdStrict(dto.getRouteId());
+        verifierDestination(dto.getAdresseDestinataire(), route);
         int reservees = route.getCapaciteReservee() == null ? 0 : route.getCapaciteReservee();
         if (reservees >= route.getCapaciteColis()) {
             throw new IllegalArgumentException("Capacité de la tournée saturée");
@@ -144,6 +145,9 @@ public class ShipmentService {
             throw new IllegalArgumentException("Le colis doit être EN_TRANSIT pour être livré");
         }
         s.setStatut(StatutShipment.LIVRE);
+        if (s.isCapaciteReservee() && !s.isCapaciteLiberee()) {
+            s.setCapaciteLiberee(true);
+        }
         TrackingEntry t = new TrackingEntry();
         t.setShipmentId(s.getId());
         t.setDate(LocalDateTime.now());
@@ -177,6 +181,9 @@ public class ShipmentService {
             throw new IllegalArgumentException("Transition impossible vers " + statut);
         }
         s.setStatut(statut);
+        if (s.isCapaciteReservee() && !s.isCapaciteLiberee()) {
+            s.setCapaciteLiberee(true);
+        }
         TrackingEntry t = new TrackingEntry();
         t.setShipmentId(s.getId());
         t.setDate(LocalDateTime.now());
@@ -234,6 +241,19 @@ public class ShipmentService {
         full.setShipment(shipmentMapper.toDto(s));
         full.setTracking(getTracking(id).stream().map(trackingEntryMapper::toDto).toList());
         return full;
+    }
+
+    /** Fiche V4 : vérifier la destination auprès de la tournée (villeArrivee). */
+    private void verifierDestination(String adresseDestinataire, RouteDto route) {
+        if (route.getVilleArrivee() == null || route.getVilleArrivee().isBlank()) {
+            throw new IllegalArgumentException("La tournée n'a pas de ville d'arrivée");
+        }
+        String adresse = adresseDestinataire == null ? "" : adresseDestinataire.toLowerCase();
+        String ville = route.getVilleArrivee().toLowerCase().trim();
+        if (!adresse.contains(ville)) {
+            throw new IllegalArgumentException(
+                    "Destination incohérente avec la tournée (villeArrivee=" + route.getVilleArrivee() + ")");
+        }
     }
 
     private void afterCommit(Runnable action) {

@@ -1,7 +1,6 @@
 package com.quickship.serviceclients.controller;
 
 import com.quickship.serviceclients.dto.CustomerDto;
-import com.quickship.serviceclients.dto.EncoursUpdateDto;
 import com.quickship.serviceclients.entite.Customer;
 import com.quickship.serviceclients.mapper.CustomerMapper;
 import com.quickship.serviceclients.service.CustomerService;
@@ -51,11 +50,5 @@ public class CustomerController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         customerService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{id}/encours")
-    public ResponseEntity<CustomerDto> augmenterEncours(@PathVariable Long id,
-                                                        @Valid @RequestBody EncoursUpdateDto dto) {
-        return ResponseEntity.ok(customerMapper.toDto(customerService.augmenterEncours(id, dto.getMontant())));
     }
 }

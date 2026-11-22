@@ -34,7 +34,7 @@ public class ReseauKafkaConsumer {
         String eid = event.eventId().toString();
         if (processedEventRepository.existsByEventId(eid)) return;
         try {
-            routeService.reserverCapacite(event.routeId());
+            routeService.reserverCapacitePourShipment(event.routeId(), event.shipmentId());
             publisher.publishResult(event.shipmentId(), event.routeId(), event.correlationId(), true, "OK");
         } catch (RuntimeException ex) {
             publisher.publishResult(event.shipmentId(), event.routeId(), event.correlationId(), false, ex.getMessage());
@@ -64,8 +64,12 @@ public class ReseauKafkaConsumer {
     public void onRelease(@Payload ShipmentLifecycleEvent event) {
         String eid = event.eventId().toString();
         if (processedEventRepository.existsByEventId(eid)) return;
-        routeService.libererCapacite(event.routeId());
+        boolean liberated = routeService.libererCapacitePourShipment(event.shipmentId());
         processedEventRepository.save(new ProcessedEvent(eid, "capacity.release"));
-        log.info("[Kafka] Capacité libérée route={} shipmentId={}", event.routeId(), event.shipmentId());
+        if (liberated) {
+            log.info("[Kafka] Capacité libérée route={} shipmentId={}", event.routeId(), event.shipmentId());
+        } else {
+            log.info("[Kafka] Pas de libération (non réservé ou déjà libéré) shipmentId={}", event.shipmentId());
+        }
     }
 }
