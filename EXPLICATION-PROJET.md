@@ -176,6 +176,7 @@ Tests : importer `postman/Quick-Ship.postman_collection.json`
 
 | Élément | Chemin |
 |---------|--------|
+| **Guide PDF complet** | [`docs/GUIDE-COMPLET-QUICK-SHIP.pdf`](docs/GUIDE-COMPLET-QUICK-SHIP.pdf) |
 | Guide dépôt Classroom | `DEPOSER-CLASSROOM.md` |
 | Conception / archi | `README.md` |
 | Fiche sujet | `docs/fiche-quick-ship.md` |
