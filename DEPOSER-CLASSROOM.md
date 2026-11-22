@@ -4,6 +4,9 @@
 **Sujet :** Fiche 16 — Quick-Ship  
 **État :** code prêt à déposer (V1→V6 sur `main`, V7 sur branche `v7.0`)
 
+**Guide PDF à lire / imprimer :** [`docs/GUIDE-COMPLET-QUICK-SHIP.pdf`](docs/GUIDE-COMPLET-QUICK-SHIP.pdf)  
+(concepts, attentes du prof, jalons, démo, textes Classroom)
+
 ---
 
 ## Règle simple
