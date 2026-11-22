@@ -1,0 +1,114 @@
+{
+  "info": {
+    "name": "Quick-Ship",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "gateway", "value": "http://localhost:8080" },
+    { "key": "idempotencyKey", "value": "test-key-001" }
+  ],
+  "item": [
+    {
+      "name": "V1 Clients",
+      "item": [
+        {
+          "name": "List customers",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-clients/customers"
+          }
+        },
+        {
+          "name": "Create customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Agadir Freight\",\n  \"email\": \"agadir@example.com\",\n  \"encours\": 0,\n  \"plafondCredit\": 15000,\n  \"statut\": \"ACTIF\"\n}"
+            },
+            "url": "{{gateway}}/service-clients/customers/new"
+          }
+        }
+      ]
+    },
+    {
+      "name": "V1 Reseau",
+      "item": [
+        {
+          "name": "List depots",
+          "request": { "method": "GET", "url": "{{gateway}}/service-reseau/depots" }
+        },
+        {
+          "name": "List routes",
+          "request": { "method": "GET", "url": "{{gateway}}/service-reseau/routes" }
+        },
+        {
+          "name": "Create route",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Casa-Tanger\",\n  \"villeDepart\": \"Casablanca\",\n  \"villeArrivee\": \"Tanger\",\n  \"dateDepart\": \"2026-12-01\",\n  \"dureeEstimee\": 6,\n  \"capaciteColis\": 20,\n  \"capaciteReservee\": 0\n}"
+            },
+            "url": "{{gateway}}/service-reseau/routes/new"
+          }
+        }
+      ]
+    },
+    {
+      "name": "V4 Expeditions",
+      "item": [
+        {
+          "name": "Create shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "idempotencyKey", "value": "{{idempotencyKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 1,\n  \"destinataireNom\": \"Sara Alami\",\n  \"adresseDestinataire\": \"Avenue Mohammed V, Rabat\",\n  \"poids\": 8.5,\n  \"routeId\": 1\n}"
+            },
+            "url": "{{gateway}}/service-expeditions/shipments/new"
+          }
+        },
+        {
+          "name": "Depart shipment",
+          "request": {
+            "method": "POST",
+            "url": "{{gateway}}/service-expeditions/shipments/2/depart"
+          }
+        },
+        {
+          "name": "Livrer shipment",
+          "request": {
+            "method": "POST",
+            "url": "{{gateway}}/service-expeditions/shipments/2/livrer"
+          }
+        },
+        {
+          "name": "Consultation enrichie",
+          "request": {
+            "method": "GET",
+            "url": "{{gateway}}/service-expeditions/shipments/2/full"
+          }
+        },
+        {
+          "name": "Add tracking",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipmentId\": 2,\n  \"localisation\": \"Kenitra\",\n  \"commentaire\": \"Passage hub\"\n}"
+            },
+            "url": "{{gateway}}/service-expeditions/tracking/new"
+          }
+        }
+      ]
+    }
+  ]
+}
