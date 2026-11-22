@@ -24,7 +24,9 @@ flowchart LR
   GW --> SN[service-notification :8084]
   SE -->|OpenFeign| SC
   SE -->|OpenFeign| SR
-  SE -->|RabbitMQ| SN
+  SE -->|Kafka| SR
+  SE -->|Kafka| SC
+  SE -->|Kafka| SN
   SC & SR & SE & SN & GW --> EU[service-registry :8761]
   SC & SR & SE & SN & GW --> CS[config-server :8888]
   SN --> Mail[Mailpit :8025]
@@ -38,13 +40,13 @@ flowchart LR
 | service-clients | 8081 | Expéditeurs & réclamations | Customer, Claim |
 | service-reseau | 8082 | Dépôts & tournées | Depot, Route |
 | service-expeditions ⭐ | 8083 | Colis & suivi | Shipment, TrackingEntry |
-| service-notification | 8084 | E-mails (RabbitMQ → Mailpit) | — |
+| service-notification | 8084 | E-mails (Kafka → Mailpit) | — |
 
 ## Prérequis
 
 - Java 17+ (projet configuré Java 17)
 - Maven 3.9+
-- Docker (RabbitMQ + Mailpit)
+- Docker (Kafka KRaft + Mailpit)
 
 ## Démarrage
 
@@ -65,15 +67,15 @@ Ordre recommandé des apps Spring Boot :
 Interfaces utiles :
 
 - Eureka : http://localhost:8761
-- RabbitMQ UI : http://localhost:15672 (`tp` / `tp123`)
+- Kafka UI : http://localhost:8090
 - Mailpit : http://localhost:8025
 
-## Règles métier clés
+## Règles métier clés (V7 Kafka)
 
-- **Création colis** (`POST /shipments/new` + header `idempotencyKey`) : vérifie customer/encours/plafond, vérifie capacité tournée, réserve 1 unité, calcule `montantTransport = poids * 10 + 50`.
-- **Départ** : `EN_ATTENTE → EN_TRANSIT` sans second décompte de capacité.
-- **Livraison** : libère capacité une seule fois, augmente encours, notifie.
-- **Retour / Perdu** : libère capacité, ouvre **une seule** Claim, notifie.
+- **Création colis** : vérifie customer/encours/plafond + destination (`villeArrivee`) via Feign ; publie `shipment.requested` ; capacité réservée atomiquement côté réseau.
+- **Départ** : uniquement si `capaciteReservee` ; publie `shipment.in-transit` **sans** second décompte.
+- **Livraison** : libère capacité **une seule fois** (si réservé), augmente encours, notifie.
+- **Retour / Perdu** : libère si réservé, ouvre **une seule** Claim, notifie.
 
 ## Endpoints principaux
 
@@ -86,42 +88,38 @@ Via Gateway (préfixe = nom du service Eureka en minuscules) :
 
 Collection Postman : [`postman/Quick-Ship.postman_collection.json`](postman/Quick-Ship.postman_collection.json)
 
-## Jalons
+## Jalons Classroom — tags & checkout
 
-| Jalon | Contenu |
-|-------|---------|
-| Init | Conception (ce README) |
-| V1 | CRUD Depot, Route, Customer |
-| V2 | Eureka + Gateway |
-| V3 | Config Server |
-| V4 | Shipment / Tracking / Claim + OpenFeign + consultation enrichie |
-| V5 | RabbitMQ + service-notification |
-| V6 | Resilience4j + ControllerAdvice + idempotence |
-| V7 | Kafka event-driven (branche `v7.0`) |
+| Tag / branche | Contenu | Checkout |
+|---------------|---------|----------|
+| `v1.0` | CRUD Depot, Route, Customer | `git checkout v1.0` |
+| `v2.0` | Eureka + Gateway | `git checkout v2.0` |
+| `v3.0` | Config Server | `git checkout v3.0` |
+| `v4.0` | OpenFeign + consultation enrichie + destination | `git checkout v4.0` |
+| `v5.0` | RabbitMQ + service-notification | `git checkout v5.0` |
+| `v6.0` / branche `main` | Resilience4j (CB/Retry/Bulkhead/timeout) + RateLimiter consultation + ControllerAdvice + idempotence | `git checkout v6.0` ou `main` |
+| `v7.0-release` / branche `v7.0` | Kafka event-driven (remplace RabbitMQ) | `git checkout v7.0` |
+
+> **Historique** : l’implémentation V1→V6 a été livrée de façon consolidée puis taguée pour Classroom (pas de commits fantômes intermédiaires). Le tag `v6.0` pointe vers `main` à jour ; `v1.0`…`v5.0` marquent le même socle pour la remise par jalon.
+
+**Rate limiting (TP V6)** : Resilience4j `@RateLimiter("consultation")` sur `GET /shipments/{id}/full` dans `service-expeditions` (repli données locales). Pas de Redis/`RequestRateLimiter` Gateway — conforme au PDF TP V6.
 
 Docs sources : [`docs/`](docs/) · Fiche : [`docs/fiche-quick-ship.md`](docs/fiche-quick-ship.md)
 
-
-## Branche V7 (Kafka)
-
-Branche Git : `v7.0`
+## Branche V7 (Kafka) — détail
 
 ```bash
 git checkout v7.0
 docker compose up -d   # Mailpit + Kafka KRaft + Kafka UI
 ```
 
-Topics :
-
 | Topic | Producteur | Consommateurs |
 |-------|------------|---------------|
 | `shipment.requested` | expeditions | reseau |
 | `shipment.capacity.reserved` / `rejected` | reseau | expeditions |
 | `shipment.in-transit` | expeditions | reseau |
-| `shipment.delivered` | expeditions | reseau, clients, (+ notification via topic dédié) |
-| `parcel.returned` / `parcel.lost` | expeditions | reseau, clients, (+ notification) |
+| `shipment.delivered` | expeditions | reseau, clients (+ notification) |
+| `parcel.returned` / `parcel.lost` | expeditions | reseau, clients (+ notification) |
 | `notification.email.requested` | expeditions | notification |
 
-Kafka UI : http://localhost:8090
-
-Idempotence : table `processed_event` dans chaque consommateur + clé Kafka = `shipmentId`.
+Idempotence : table `processed_event` dans chaque consommateur (y compris notification) + clé Kafka = `shipmentId`.
