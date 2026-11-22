@@ -8,7 +8,7 @@ import com.quickship.serviceexpeditions.exception.RessourceIntrouvableException;
 import com.quickship.serviceexpeditions.feign.*;
 import com.quickship.serviceexpeditions.mapper.ShipmentMapper;
 import com.quickship.serviceexpeditions.mapper.TrackingEntryMapper;
-import com.quickship.serviceexpeditions.messaging.NotificationPublisher;
+import com.quickship.serviceexpeditions.messaging.ShipmentEventPublisher;
 import com.quickship.serviceexpeditions.repository.ShipmentRepository;
 import com.quickship.serviceexpeditions.repository.TrackingEntryRepository;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
@@ -31,27 +31,24 @@ public class ShipmentService {
     private final TrackingEntryRepository trackingEntryRepository;
     private final ResilientRequests resilientRequests;
     private final ClientsRequest clientsRequest;
-    private final ReseauRequest reseauRequest;
     private final ShipmentMapper shipmentMapper;
     private final TrackingEntryMapper trackingEntryMapper;
-    private final NotificationPublisher notificationPublisher;
+    private final ShipmentEventPublisher eventPublisher;
 
     public ShipmentService(ShipmentRepository shipmentRepository,
                            TrackingEntryRepository trackingEntryRepository,
                            ResilientRequests resilientRequests,
                            ClientsRequest clientsRequest,
-                           ReseauRequest reseauRequest,
                            ShipmentMapper shipmentMapper,
                            TrackingEntryMapper trackingEntryMapper,
-                           NotificationPublisher notificationPublisher) {
+                           ShipmentEventPublisher eventPublisher) {
         this.shipmentRepository = shipmentRepository;
         this.trackingEntryRepository = trackingEntryRepository;
         this.resilientRequests = resilientRequests;
         this.clientsRequest = clientsRequest;
-        this.reseauRequest = reseauRequest;
         this.shipmentMapper = shipmentMapper;
         this.trackingEntryMapper = trackingEntryMapper;
-        this.notificationPublisher = notificationPublisher;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<Shipment> getAll() { return shipmentRepository.findAll(); }
@@ -91,8 +88,6 @@ public class ShipmentService {
             throw new IllegalArgumentException("Plafond de crédit dépassé");
         }
 
-        reseauRequest.reserverCapacite(dto.getRouteId());
-
         Shipment shipment = new Shipment();
         shipment.setCustomerId(dto.getCustomerId());
         shipment.setDestinataireNom(dto.getDestinataireNom());
@@ -103,10 +98,17 @@ public class ShipmentService {
         shipment.setNumeroSuivi("QS-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         shipment.setStatut(StatutShipment.EN_ATTENTE);
         shipment.setIdempotencyKey(idempotencyKey);
-        shipment.setCapaciteReservee(true);
+        shipment.setCapaciteReservee(false);
         shipment.setCapaciteLiberee(false);
         shipment.setEncoursApplique(false);
-        return shipmentRepository.save(shipment);
+        Shipment saved = shipmentRepository.save(shipment);
+
+        final Long shipmentId = saved.getId();
+        final Long routeId = saved.getRouteId();
+        final Long customerId = saved.getCustomerId();
+        final String correlationId = idempotencyKey;
+        afterCommit(() -> eventPublisher.publishRequested(shipmentId, routeId, customerId, correlationId));
+        return saved;
     }
 
     @Transactional
@@ -115,7 +117,9 @@ public class ShipmentService {
         if (s.getStatut() != StatutShipment.EN_ATTENTE) {
             throw new IllegalArgumentException("Le colis doit être EN_ATTENTE pour partir");
         }
-        // validation sans second décompte de capacité
+        if (!s.isCapaciteReservee()) {
+            throw new IllegalArgumentException("Capacité non encore réservée (attendre shipment-capacity-reserved)");
+        }
         resilientRequests.getRouteByIdStrict(s.getRouteId());
         s.setStatut(StatutShipment.EN_TRANSIT);
         TrackingEntry t = new TrackingEntry();
@@ -124,7 +128,13 @@ public class ShipmentService {
         t.setLocalisation("Départ entrepôt");
         t.setCommentaire("Colis en transit");
         trackingEntryRepository.save(t);
-        return shipmentRepository.save(s);
+        shipmentRepository.save(s);
+
+        final Long shipmentId = s.getId();
+        final Long routeId = s.getRouteId();
+        final String correlationId = s.getIdempotencyKey();
+        afterCommit(() -> eventPublisher.publishInTransit(shipmentId, routeId, correlationId));
+        return s;
     }
 
     @Transactional
@@ -150,16 +160,10 @@ public class ShipmentService {
         final String email = customer.getEmail();
         final String nom = customer.getNom();
         final String numero = s.getNumeroSuivi();
+        final String correlationId = s.getIdempotencyKey();
 
-        afterCommit(() -> {
-            libererCapaciteUneFois(shipmentId, routeId);
-            appliquerEncoursUneFois(shipmentId, customerId, montant);
-            notificationPublisher.envoyer(new NotificationEmailDto(
-                    email,
-                    "Colis livré " + numero,
-                    "Bonjour " + nom + ", votre colis " + numero + " a été livré."
-            ));
-        });
+        afterCommit(() -> eventPublisher.publishDelivered(
+                shipmentId, routeId, customerId, montant, email, nom, numero, correlationId));
         return s;
     }
 
@@ -185,22 +189,15 @@ public class ShipmentService {
         final Long shipmentId = s.getId();
         final Long customerId = s.getCustomerId();
         final Long routeId = s.getRouteId();
+        final BigDecimal montant = s.getMontantTransport();
         final String email = customer.getEmail();
         final String nom = customer.getNom();
         final String numero = s.getNumeroSuivi();
         final String label = statut.name();
+        final String correlationId = s.getIdempotencyKey();
 
-        afterCommit(() -> {
-            libererCapaciteUneFois(shipmentId, routeId);
-            clientsRequest.createClaim(new CreateClaimDto(
-                    customerId, shipmentId, "Réclamation automatique : colis " + label
-            ));
-            notificationPublisher.envoyer(new NotificationEmailDto(
-                    email,
-                    "Colis " + label + " " + numero,
-                    "Bonjour " + nom + ", votre colis " + numero + " est passé en statut " + label + "."
-            ));
-        });
+        afterCommit(() -> eventPublisher.publishReturnedOrLost(
+                shipmentId, routeId, customerId, montant, email, nom, numero, label, correlationId));
         return s;
     }
 
@@ -237,22 +234,6 @@ public class ShipmentService {
         full.setShipment(shipmentMapper.toDto(s));
         full.setTracking(getTracking(id).stream().map(trackingEntryMapper::toDto).toList());
         return full;
-    }
-
-    private void libererCapaciteUneFois(Long shipmentId, Long routeId) {
-        Shipment s = getById(shipmentId);
-        if (s.isCapaciteLiberee() || !s.isCapaciteReservee()) return;
-        reseauRequest.libererCapacite(routeId);
-        s.setCapaciteLiberee(true);
-        shipmentRepository.save(s);
-    }
-
-    private void appliquerEncoursUneFois(Long shipmentId, Long customerId, BigDecimal montant) {
-        Shipment s = getById(shipmentId);
-        if (s.isEncoursApplique()) return;
-        clientsRequest.augmenterEncours(customerId, new EncoursUpdateDto(montant));
-        s.setEncoursApplique(true);
-        shipmentRepository.save(s);
     }
 
     private void afterCommit(Runnable action) {

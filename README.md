@@ -97,6 +97,31 @@ Collection Postman : [`postman/Quick-Ship.postman_collection.json`](postman/Quic
 | V4 | Shipment / Tracking / Claim + OpenFeign + consultation enrichie |
 | V5 | RabbitMQ + service-notification |
 | V6 | Resilience4j + ControllerAdvice + idempotence |
-| V7 | Kafka (branche séparée — à venir) |
+| V7 | Kafka event-driven (branche `v7.0`) |
 
 Docs sources : [`docs/`](docs/) · Fiche : [`docs/fiche-quick-ship.md`](docs/fiche-quick-ship.md)
+
+
+## Branche V7 (Kafka)
+
+Branche Git : `v7.0`
+
+```bash
+git checkout v7.0
+docker compose up -d   # Mailpit + Kafka KRaft + Kafka UI
+```
+
+Topics :
+
+| Topic | Producteur | Consommateurs |
+|-------|------------|---------------|
+| `shipment.requested` | expeditions | reseau |
+| `shipment.capacity.reserved` / `rejected` | reseau | expeditions |
+| `shipment.in-transit` | expeditions | reseau |
+| `shipment.delivered` | expeditions | reseau, clients, (+ notification via topic dédié) |
+| `parcel.returned` / `parcel.lost` | expeditions | reseau, clients, (+ notification) |
+| `notification.email.requested` | expeditions | notification |
+
+Kafka UI : http://localhost:8090
+
+Idempotence : table `processed_event` dans chaque consommateur + clé Kafka = `shipmentId`.
