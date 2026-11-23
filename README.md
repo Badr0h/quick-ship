@@ -42,6 +42,80 @@ flowchart LR
 | service-expeditions ⭐ | 8083 | Colis & suivi | Shipment, TrackingEntry |
 | service-notification | 8084 | E-mails (Kafka → Mailpit) | — |
 
+## Diagrammes de classes (références distantes)
+
+Les IDs distants (`customerId`, `routeId`, `shipmentId`) **ne sont pas des FK JPA** entre bases : chaque service a sa propre H2.
+
+```mermaid
+classDiagram
+  direction LR
+  class Customer {
+    Long id
+    String nom
+    String email
+    BigDecimal encours
+    BigDecimal plafondCredit
+    String statut
+  }
+  class Claim {
+    Long id
+    Long customerId
+    Long shipmentId
+    String description
+    BigDecimal montant
+    String statut
+  }
+  Customer "1" --> "0..*" Claim : customerId
+  note for Claim "shipmentId = ref distante\nvers service-expeditions"
+```
+
+```mermaid
+classDiagram
+  direction LR
+  class Depot {
+    Long id
+    String nom
+    String ville
+    Integer capacite
+  }
+  class Route {
+    Long id
+    String nom
+    String villeDepart
+    String villeArrivee
+    LocalDate dateDepart
+    Integer dureeEstimee
+    Integer capaciteColis
+    Integer capaciteReservee
+  }
+```
+
+```mermaid
+classDiagram
+  direction LR
+  class Shipment {
+    Long id
+    Long customerId
+    String destinataireNom
+    String adresseDestinataire
+    Double poids
+    Long routeId
+    BigDecimal montantTransport
+    String numeroSuivi
+    StatutShipment statut
+    String idempotencyKey
+  }
+  class TrackingEntry {
+    Long id
+    Long shipmentId
+    LocalDateTime date
+    String localisation
+    String commentaire
+  }
+  Shipment "1" --> "0..*" TrackingEntry : shipmentId
+  note for Shipment "customerId → service-clients\nrouteId → service-reseau\n(pas de FK JPA cross-DB)"
+```
+
 ## Prérequis
 
 - Java 17+ (projet configuré Java 17)
@@ -104,7 +178,8 @@ Collection Postman : [`postman/Quick-Ship.postman_collection.json`](postman/Quic
 
 **Rate limiting (TP V6)** : Resilience4j `@RateLimiter("consultation")` sur `GET /shipments/{id}/full` dans `service-expeditions` (repli données locales). Pas de Redis/`RequestRateLimiter` Gateway — conforme au PDF TP V6.
 
-Docs sources : [`docs/`](docs/) · Fiche : [`docs/fiche-quick-ship.md`](docs/fiche-quick-ship.md)
+Docs sources : [`docs/`](docs/) · Fiche : [`docs/fiche-quick-ship.md`](docs/fiche-quick-ship.md)  
+**Prêt oral 1ère éval :** [`docs/PRET-ORAL-1ERE-EVALUATION.pdf`](docs/PRET-ORAL-1ERE-EVALUATION.pdf) · Guide : [`docs/GUIDE-COMPLET-QUICK-SHIP.pdf`](docs/GUIDE-COMPLET-QUICK-SHIP.pdf)
 
 ## Branche V7 (Kafka) — détail
 
