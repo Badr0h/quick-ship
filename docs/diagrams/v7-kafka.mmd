@@ -1,0 +1,10 @@
+flowchart LR
+  SE[service-expeditions] -->|shipment.requested| SR[service-reseau]
+  SR -->|capacity.reserved / rejected| SE
+  SE -->|shipment.in-transit| SR
+  SE -->|shipment.delivered| SR
+  SE -->|shipment.delivered| SC[service-clients]
+  SE -->|parcel.returned / lost| SR
+  SE -->|parcel.returned / lost| SC
+  SE -->|notification.email.requested| SN[service-notification]
+  SN --> MP[Mailpit]

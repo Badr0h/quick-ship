@@ -1,0 +1,23 @@
+classDiagram
+  direction LR
+  class Shipment {
+    Long id
+    Long customerId
+    String destinataireNom
+    String adresseDestinataire
+    Double poids
+    Long routeId
+    BigDecimal montantTransport
+    String numeroSuivi
+    StatutShipment statut
+    String idempotencyKey
+  }
+  class TrackingEntry {
+    Long id
+    Long shipmentId
+    LocalDateTime date
+    String localisation
+    String commentaire
+  }
+  Shipment "1" --> "0..*" TrackingEntry : shipmentId
+  note for Shipment "customerId → service-clients\nrouteId → service-reseau\n(pas de FK JPA cross-DB)"

@@ -6,7 +6,7 @@
 
 **PDF TOUT COMPRENDRE (V0→V7 + oral) :**  
 [`docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf`](docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf)  
-(= même contenu que [`docs/PRET-ORAL-1ERE-EVALUATION.pdf`](docs/PRET-ORAL-1ERE-EVALUATION.pdf))
+**Diagrammes (images) :** [`docs/DIAGRAMMES-QUICK-SHIP.pdf`](docs/DIAGRAMMES-QUICK-SHIP.pdf) · PNG [`docs/diagrams/`](docs/diagrams/)
 
 ---
 

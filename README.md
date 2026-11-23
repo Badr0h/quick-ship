@@ -179,7 +179,8 @@ Collection Postman : [`postman/Quick-Ship.postman_collection.json`](postman/Quic
 **Rate limiting (TP V6)** : Resilience4j `@RateLimiter("consultation")` sur `GET /shipments/{id}/full` dans `service-expeditions` (repli données locales). Pas de Redis/`RequestRateLimiter` Gateway — conforme au PDF TP V6.
 
 Docs sources : [`docs/`](docs/) · Fiche : [`docs/fiche-quick-ship.md`](docs/fiche-quick-ship.md)  
-**Guide complet V0→V7 + oral :** [`docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf`](docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf)
+**Guide complet V0→V7 + oral :** [`docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf`](docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf)  
+**Diagrammes (PDF images) :** [`docs/DIAGRAMMES-QUICK-SHIP.pdf`](docs/DIAGRAMMES-QUICK-SHIP.pdf) · PNG : [`docs/diagrams/`](docs/diagrams/)
 
 ## Branche V7 (Kafka) — détail
 

@@ -1,0 +1,20 @@
+classDiagram
+  direction LR
+  class Customer {
+    Long id
+    String nom
+    String email
+    BigDecimal encours
+    BigDecimal plafondCredit
+    String statut
+  }
+  class Claim {
+    Long id
+    Long customerId
+    Long shipmentId
+    String description
+    BigDecimal montant
+    String statut
+  }
+  Customer "1" --> "0..*" Claim : customerId
+  note for Claim "shipmentId = ref distante\nvers service-expeditions"
