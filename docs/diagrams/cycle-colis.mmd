@@ -1,0 +1,11 @@
+stateDiagram-v2
+  [*] --> EN_ATTENTE : create shipment
+  EN_ATTENTE --> EN_TRANSIT : depart
+  EN_TRANSIT --> LIVRE : livrer
+  EN_TRANSIT --> RETOUR : retour
+  EN_TRANSIT --> PERDU : perdu
+  EN_ATTENTE --> RETOUR : retour
+  EN_ATTENTE --> PERDU : perdu
+  LIVRE --> [*]
+  RETOUR --> [*] : Claim + mail
+  PERDU --> [*] : Claim + mail

@@ -24,7 +24,9 @@ flowchart LR
   GW --> SN[service-notification :8084]
   SE -->|OpenFeign| SC
   SE -->|OpenFeign| SR
-  SE -->|RabbitMQ| SN
+  SE -->|Kafka| SR
+  SE -->|Kafka| SC
+  SE -->|Kafka| SN
   SC & SR & SE & SN & GW --> EU[service-registry :8761]
   SC & SR & SE & SN & GW --> CS[config-server :8888]
   SN --> Mail[Mailpit :8025]
@@ -38,7 +40,7 @@ flowchart LR
 | service-clients | 8081 | Expéditeurs & réclamations | Customer, Claim |
 | service-reseau | 8082 | Dépôts & tournées | Depot, Route |
 | service-expeditions ⭐ | 8083 | Colis & suivi | Shipment, TrackingEntry |
-| service-notification | 8084 | E-mails (RabbitMQ → Mailpit) | — |
+| service-notification | 8084 | E-mails (Kafka → Mailpit) | — |
 
 ## Diagrammes de classes (références distantes)
 
@@ -118,7 +120,7 @@ classDiagram
 
 - Java 17+ (projet configuré Java 17)
 - Maven 3.9+
-- Docker (RabbitMQ + Mailpit)
+- Docker (Kafka KRaft + Mailpit)
 
 ## Démarrage
 
@@ -139,15 +141,15 @@ Ordre recommandé des apps Spring Boot :
 Interfaces utiles :
 
 - Eureka : http://localhost:8761
-- RabbitMQ UI : http://localhost:15672 (`tp` / `tp123`)
+- Kafka UI : http://localhost:8090
 - Mailpit : http://localhost:8025
 
-## Règles métier clés
+## Règles métier clés (V7 Kafka)
 
-- **Création colis** (`POST /shipments/new` + header `idempotencyKey`) : vérifie customer/encours/plafond, vérifie destination (`adresseDestinataire` contient `villeArrivee`), vérifie capacité tournée, réserve 1 unité, calcule `montantTransport = poids * 10 + 50`.
-- **Départ** : `EN_ATTENTE → EN_TRANSIT` sans second décompte de capacité.
-- **Livraison** : libère capacité une seule fois, augmente encours, notifie.
-- **Retour / Perdu** : libère capacité, ouvre **une seule** Claim, notifie.
+- **Création colis** : vérifie customer/encours/plafond + destination (`villeArrivee`) via Feign ; publie `shipment.requested` ; capacité réservée atomiquement côté réseau.
+- **Départ** : uniquement si `capaciteReservee` ; publie `shipment.in-transit` **sans** second décompte.
+- **Livraison** : libère capacité **une seule fois** (si réservé), augmente encours, notifie.
+- **Retour / Perdu** : libère si réservé, ouvre **une seule** Claim, notifie.
 
 ## Endpoints principaux
 
@@ -177,4 +179,23 @@ Collection Postman : [`postman/Quick-Ship.postman_collection.json`](postman/Quic
 **Rate limiting (TP V6)** : Resilience4j `@RateLimiter("consultation")` sur `GET /shipments/{id}/full` dans `service-expeditions` (repli données locales). Pas de Redis/`RequestRateLimiter` Gateway — conforme au PDF TP V6.
 
 Docs sources : [`docs/`](docs/) · Fiche : [`docs/fiche-quick-ship.md`](docs/fiche-quick-ship.md)  
-**Prêt oral 1ère éval :** [`docs/PRET-ORAL-1ERE-EVALUATION.pdf`](docs/PRET-ORAL-1ERE-EVALUATION.pdf)
+**Guide complet V0→V7 + oral :** [`docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf`](docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf)  
+**Diagrammes (PDF images) :** [`docs/DIAGRAMMES-QUICK-SHIP.pdf`](docs/DIAGRAMMES-QUICK-SHIP.pdf) · PNG : [`docs/diagrams/`](docs/diagrams/)
+
+## Branche V7 (Kafka) — détail
+
+```bash
+git checkout v7.0
+docker compose up -d   # Mailpit + Kafka KRaft + Kafka UI
+```
+
+| Topic | Producteur | Consommateurs |
+|-------|------------|---------------|
+| `shipment.requested` | expeditions | reseau |
+| `shipment.capacity.reserved` / `rejected` | reseau | expeditions |
+| `shipment.in-transit` | expeditions | reseau |
+| `shipment.delivered` | expeditions | reseau, clients (+ notification) |
+| `parcel.returned` / `parcel.lost` | expeditions | reseau, clients (+ notification) |
+| `notification.email.requested` | expeditions | notification |
+
+Idempotence : table `processed_event` dans chaque consommateur (y compris notification) + clé Kafka = `shipmentId`.

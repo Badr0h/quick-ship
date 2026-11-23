@@ -1,0 +1,18 @@
+classDiagram
+  direction LR
+  class Depot {
+    Long id
+    String nom
+    String ville
+    Integer capacite
+  }
+  class Route {
+    Long id
+    String nom
+    String villeDepart
+    String villeArrivee
+    LocalDate dateDepart
+    Integer dureeEstimee
+    Integer capaciteColis
+    Integer capaciteReservee
+  }

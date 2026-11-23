@@ -1,0 +1,12 @@
+flowchart LR
+  Client([Client / Postman]) --> GW[gateway :8080]
+  GW --> SC[service-clients :8081]
+  GW --> SR[service-reseau :8082]
+  GW --> SE[service-expeditions :8083]
+  GW --> SN[service-notification :8084]
+  SE -->|OpenFeign| SC
+  SE -->|OpenFeign| SR
+  SE -->|Broker Rabbit/Kafka| SN
+  SC & SR & SE & SN & GW --> EU[service-registry :8761]
+  SC & SR & SE & SN & GW --> CS[config-server :8888]
+  SN --> Mail[Mailpit :8025]
