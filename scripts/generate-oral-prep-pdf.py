@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PDF prêt oral — 1ère évaluation (grille /10) Quick-Ship."""
+"""PDF unique — tout comprendre Quick-Ship (V0→V7) + prêt oral."""
 
 from pathlib import Path
 from reportlab.lib.pagesizes import A4
@@ -8,45 +8,38 @@ from reportlab.lib.units import cm
 from reportlab.lib.colors import HexColor, white, black
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, KeepTogether, ListFlowable, ListItem, HRFlowable,
+    PageBreak, ListFlowable, ListItem, HRFlowable,
 )
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+import shutil
 
-OUT = Path(__file__).resolve().parents[1] / "docs" / "PRET-ORAL-1ERE-EVALUATION.pdf"
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "docs" / "PRET-ORAL-1ERE-EVALUATION.pdf"
+OUT2 = ROOT / "docs" / "GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf"
 OUT.parent.mkdir(parents=True, exist_ok=True)
 
 NAVY = HexColor("#0B1F33")
 TEAL = HexColor("#0E7490")
-OK_BG = HexColor("#DCFCE7")
-OK_FG = HexColor("#166534")
-WARN_BG = HexColor("#FEF3C7")
-WARN_FG = HexColor("#92400E")
+OK = "#166534"
 LIGHT = HexColor("#F1F5F9")
 MUTED = HexColor("#475569")
 
 styles = getSampleStyleSheet()
-styles.add(ParagraphStyle("Cover", fontName="Helvetica-Bold", fontSize=20, textColor=NAVY,
-                          alignment=TA_CENTER, spaceAfter=10, leading=26))
-styles.add(ParagraphStyle("CoverSub", fontName="Helvetica", fontSize=11, textColor=MUTED,
-                          alignment=TA_CENTER, spaceAfter=5, leading=15))
-styles.add(ParagraphStyle("H1Oral", fontName="Helvetica-Bold", fontSize=13, textColor=NAVY,
-                          spaceBefore=12, spaceAfter=7, leading=17))
-styles.add(ParagraphStyle("H2Oral", fontName="Helvetica-Bold", fontSize=10.5, textColor=TEAL,
-                          spaceBefore=9, spaceAfter=4, leading=13))
-styles.add(ParagraphStyle("BodyOral", fontName="Helvetica", fontSize=9.2, textColor=black,
-                          alignment=TA_JUSTIFY, spaceAfter=5, leading=12.5))
-styles.add(ParagraphStyle("BulletOral", fontName="Helvetica", fontSize=9, textColor=black,
-                          leftIndent=8, spaceAfter=2, leading=12))
-styles.add(ParagraphStyle("CodeOral", fontName="Courier", fontSize=7.8, textColor=NAVY,
-                          backColor=LIGHT, leftIndent=4, spaceBefore=3, spaceAfter=3, leading=10.5))
-styles.add(ParagraphStyle("Call", fontName="Helvetica-Bold", fontSize=9.2, textColor=NAVY,
-                          spaceBefore=6, spaceAfter=6, leading=12.5))
-styles.add(ParagraphStyle("QA", fontName="Helvetica-Oblique", fontSize=9.2, textColor=TEAL,
-                          spaceBefore=7, spaceAfter=2, leading=12))
-styles.add(ParagraphStyle("Ans", fontName="Helvetica", fontSize=9.1, textColor=black,
-                          leftIndent=6, spaceAfter=4, leading=12.2))
-styles.add(ParagraphStyle("TH", fontName="Helvetica-Bold", fontSize=7.8, textColor=white, leading=10))
-styles.add(ParagraphStyle("TD", fontName="Helvetica", fontSize=7.7, leading=10))
+for name, kwargs in [
+    ("Cover", dict(fontName="Helvetica-Bold", fontSize=18, textColor=NAVY, alignment=TA_CENTER, spaceAfter=8, leading=24)),
+    ("CoverSub", dict(fontName="Helvetica", fontSize=10.5, textColor=MUTED, alignment=TA_CENTER, spaceAfter=4, leading=14)),
+    ("H1Oral", dict(fontName="Helvetica-Bold", fontSize=12.5, textColor=NAVY, spaceBefore=10, spaceAfter=6, leading=16)),
+    ("H2Oral", dict(fontName="Helvetica-Bold", fontSize=10.2, textColor=TEAL, spaceBefore=8, spaceAfter=3, leading=13)),
+    ("BodyOral", dict(fontName="Helvetica", fontSize=9, textColor=black, alignment=TA_JUSTIFY, spaceAfter=4, leading=12)),
+    ("BulletOral", dict(fontName="Helvetica", fontSize=8.8, textColor=black, leftIndent=6, spaceAfter=2, leading=11.5)),
+    ("CodeOral", dict(fontName="Courier", fontSize=7.5, textColor=NAVY, backColor=LIGHT, leftIndent=3, spaceBefore=2, spaceAfter=2, leading=10)),
+    ("Call", dict(fontName="Helvetica-Bold", fontSize=9, textColor=NAVY, spaceBefore=5, spaceAfter=5, leading=12)),
+    ("QA", dict(fontName="Helvetica-Oblique", fontSize=8.9, textColor=TEAL, spaceBefore=5, spaceAfter=1, leading=11.5)),
+    ("Ans", dict(fontName="Helvetica", fontSize=8.9, textColor=black, leftIndent=5, spaceAfter=3, leading=11.5)),
+    ("TH", dict(fontName="Helvetica-Bold", fontSize=7.5, textColor=white, leading=9.5)),
+    ("TD", dict(fontName="Helvetica", fontSize=7.4, leading=9.5)),
+]:
+    styles.add(ParagraphStyle(name, **kwargs))
 
 
 def P(t, s="BodyOral"):
@@ -55,13 +48,13 @@ def P(t, s="BodyOral"):
 
 def bullets(items):
     return ListFlowable(
-        [ListItem(Paragraph(i, styles["BulletOral"]), bulletColor=TEAL, leftIndent=6) for i in items],
-        bulletType="bullet", start="•", leftIndent=14, spaceAfter=4,
+        [ListItem(Paragraph(i, styles["BulletOral"]), bulletColor=TEAL, leftIndent=5) for i in items],
+        bulletType="bullet", start="•", leftIndent=12, spaceAfter=3,
     )
 
 
 def hr():
-    return HRFlowable(width="100%", thickness=1, color=TEAL, spaceBefore=2, spaceAfter=6)
+    return HRFlowable(width="100%", thickness=1, color=TEAL, spaceBefore=2, spaceAfter=5)
 
 
 def table(headers, rows, widths):
@@ -70,354 +63,360 @@ def table(headers, rows, widths):
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), NAVY),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [LIGHT, white]),
-        ("GRID", (0, 0), (-1, -1), 0.35, HexColor("#CBD5E1")),
+        ("GRID", (0, 0), (-1, -1), 0.3, HexColor("#CBD5E1")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 3),
         ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
     ]))
     return t
 
 
 def footer(c, doc):
     c.saveState()
-    c.setFont("Helvetica", 8)
+    c.setFont("Helvetica", 7.5)
     c.setFillColor(MUTED)
-    c.drawString(1.7 * cm, 1.1 * cm, "Quick-Ship — Prêt oral 1ère évaluation")
-    c.drawRightString(A4[0] - 1.7 * cm, 1.1 * cm, f"{doc.page}")
+    c.drawString(1.5 * cm, 1 * cm, "Quick-Ship — Guide complet V0→V7 + prêt oral")
+    c.drawRightString(A4[0] - 1.5 * cm, 1 * cm, f"{doc.page}")
     c.restoreState()
 
 
 def build():
-    doc = SimpleDocTemplate(
-        str(OUT), pagesize=A4,
-        leftMargin=1.6 * cm, rightMargin=1.6 * cm,
-        topMargin=1.4 * cm, bottomMargin=1.8 * cm,
-        title="Prêt Oral — 1ère Évaluation Quick-Ship",
-        author="Quick-Ship Fiche 16",
-    )
     story = []
-    W = A4[0] - 3.2 * cm
+    W = A4[0] - 3.0 * cm
 
-    # COVER
-    story.append(Spacer(1, 1.8 * cm))
-    story.append(P("PRÊT POUR L’ORAL", "Cover"))
-    story.append(P("1ère Évaluation — Grille / 10 points", "Cover"))
-    story.append(Spacer(1, 0.3 * cm))
-    story.append(P("Quick-Ship · Fiche 16 · J2EE Avancée 2027", "CoverSub"))
-    story.append(P("Repo : https://github.com/Badr0h/quick-ship", "CoverSub"))
-    story.append(P("Branche démo : <b>main</b> / tag <b>v6.0</b> (RabbitMQ) — pas v7.0 Kafka", "CoverSub"))
-    story.append(Spacer(1, 0.5 * cm))
+    story.append(Spacer(1, 1.2 * cm))
+    story.append(P("TOUT COMPRENDRE + PRÊT ORAL", "Cover"))
+    story.append(P("Quick-Ship — Fiche 16 · V0 → V7", "Cover"))
+    story.append(Spacer(1, 0.2 * cm))
+    story.append(P("J2EE Avancée 2027 · 5IDSI · https://github.com/Badr0h/quick-ship", "CoverSub"))
+    story.append(Spacer(1, 0.35 * cm))
     story.append(P(
-        "Ce PDF = checklist grille + quoi montrer + réponses orales + scénario démo. "
-        "Objectif : arriver devant le prof sans improvisation.",
+        "Un seul document : le projet, les concepts, ce que le prof veut, "
+        "la grille /10 (V0–V6), <b>et le V7 Kafka</b>, avec réponses orales et quoi montrer.",
         "BodyOral"))
     story.append(P(
-        "<b>Phrase d’ouverture (20 s) :</b> « Quick-Ship suit des colis en microservices Spring Cloud. "
-        "Clients / réseau / expéditions, Eureka, Gateway, Config. Feign pour les vérifs sync, "
-        "RabbitMQ pour les mails, résilience et idempotence en V6. »",
+        "<b>2 branches à ne jamais mélanger :</b><br/>"
+        "• <b>main / v6.0</b> = RabbitMQ → 1ère évaluation (grille)<br/>"
+        "• <b>v7.0</b> = Kafka → jalon V7",
+        "Call"))
+    story.append(P(
+        "<b>Phrase 20 s :</b> « Quick-Ship suit des colis en microservices Spring Cloud. "
+        "Clients, réseau, expéditions + Eureka, Gateway, Config. Feign en sync, "
+        "RabbitMQ puis Kafka en async, résilience et idempotence. »",
         "Call"))
 
-    # ========== CHECKLIST ==========
     story.append(PageBreak())
     story.append(hr())
-    story.append(P("1. Checklist grille — est-ce que c’est là ?", "H1Oral"))
+    story.append(P("1. C’est quoi Quick-Ship ?", "H1Oral"))
     story.append(P(
-        "Barème : 1 pt = conforme et fonctionnel · 0,5 = partiel · 0 = absent. "
-        "10 éléments = 10 points. Audit projet :",
+        "App de <b>transport de colis entre entrepôts</b> : un expéditeur crée un colis sur une tournée, "
+        "on le suit, puis LIVRE / RETOUR / PERDU. Retour ou perdu → Claim + e-mail.",
         "BodyOral"))
+    story.append(P("<font face='Courier'>EN_ATTENTE → EN_TRANSIT → LIVRE | RETOUR | PERDU</font>", "CodeOral"))
+    story.append(P("<b>Règle :</b> 1 colis = 1 expéditeur + 1 destinataire + 1 tournée + 1 n° suivi", "Call"))
+    story.append(P("montantTransport = poids × 10 + 50 (calcul serveur)", "BodyOral"))
 
-    checklist = [
-        ["#", "Élément grille", "Statut", "Preuve / quoi ouvrir"],
-        ["1", "V0 Schéma architecture + README", "OK", "README.md (mermaid + démarrage)"],
-        ["2", "V0 Diagrammes de classes + refs distantes", "OK", "README section Diagrammes de classes"],
-        ["3", "V1 Couches Entity-Repo-Service-Controller + DTO + DB/service", "OK", "packages des 3 services + H2 clientsdb/reseaudb/expeditionsdb"],
-        ["4", "V1 CRUD + Postman structuré", "OK", "Postman dossiers V1 Clients / V1 Reseau"],
-        ["5", "V2 Eureka — instances UP", "OK", "http://localhost:8761 — 5 apps UP"],
-        ["6", "V2 Gateway routage dynamique + Postman", "OK", "discovery.locator + URLs /service-xxx/..."],
-        ["7", "V3 Config Server + config-repo", "OK", "config-server:8888 + config-repo/*.properties"],
-        ["8", "V4 Feign typé + validations création", "OK", "ClientsRequest/ReseauRequest + create shipment"],
-        ["9", "V4 Consultation enrichie /full + Postman", "OK", "GET .../shipments/{id}/full"],
-        ["10", "V5 Broker + Publisher/Consumer + mail", "OK", "RabbitMQ + NotificationPublisher/Consumer + Mailpit"],
-        ["11", "V6 CB/Retry/timeout ≥2 Feign", "OK", "ResilientRequests (clients + reseau)"],
-        ["12", "V6 ControllerAdvice + idempotence", "OK", "GlobalExceptionHandler + header idempotencyKey"],
-    ]
-    # Grille has 10 points - I listed sub-items. Let me map to official 10:
-    # Looking at grid again - phases group into ~10 deliverables:
-    # 1 V0 conception
-    # 2 V1 couches/DTO/DB
-    # 3 V1 CRUD Postman
-    # 4 V2 Eureka
-    # 5 V2 Gateway
-    # 6 V3 Config
-    # 7 V4 Feign validation
-    # 8 V4 Consultation enrichie
-    # 9 V5 async mail
-    # 10 V6 resilience+advice+idempotence
-
+    story.append(P("Services", "H2Oral"))
     story.append(table(
-        ["#", "Point grille (1 pt)", "Statut", "Où / quoi montrer"],
+        ["Service", "Port", "Rôle", "Entités"],
         [
-            ["1", "<b>V0</b> Archi + diagrammes classes + README",
-             "<font color='#166534'><b>OK</b></font>",
-             "README : flowchart + classDiagram + prérequis"],
-            ["2", "<b>V1</b> Couches + DB per service + DTO/MapStruct",
-             "<font color='#166534'><b>OK</b></font>",
-             "Entity→Repo→Service→Controller ; H2 séparées"],
-            ["3", "<b>V1</b> CRUD + collection Postman",
-             "<font color='#166534'><b>OK</b></font>",
-             "Customer/Depot/Route CRUD + Postman V1"],
-            ["4", "<b>V2</b> Eureka — enregistrement UP",
-             "<font color='#166534'><b>OK</b></font>",
-             "Dashboard Eureka : GATEWAY, CLIENTS, RESEAU, EXPEDITIONS, NOTIFICATION"],
-            ["5", "<b>V2</b> Gateway routage dynamique",
-             "<font color='#166534'><b>OK</b></font>",
-             "spring.cloud.gateway.discovery.locator.enabled=true"],
-            ["6", "<b>V3</b> Config Server externalisé",
-             "<font color='#166534'><b>OK</b></font>",
-             "config-server + config-repo/ + spring.config.import"],
-            ["7", "<b>V4</b> Feign + validation refs distantes",
-             "<font color='#166534'><b>OK</b></font>",
-             "create : client ACTIF, plafond, destination, capacité"],
-            ["8", "<b>V4</b> Consultation enrichie (DTO composé)",
-             "<font color='#166534'><b>OK</b></font>",
-             "ShipmentFullDto via GET /shipments/{id}/full"],
-            ["9", "<b>V5</b> Broker + notif + mail bout-en-bout",
-             "<font color='#166534'><b>OK</b></font>",
-             "livrer/retour → RabbitMQ → Mailpit"],
-            ["10", "<b>V6</b> CB/Retry/timeout + Advice + idempotence",
-             "<font color='#166534'><b>OK</b></font>",
-             "ResilientRequests + GlobalExceptionHandler + idempotencyKey"],
+            ["service-clients", "8081", "Expéditeurs + réclamations", "Customer, Claim"],
+            ["service-reseau", "8082", "Dépôts + tournées + capacité", "Depot, Route"],
+            ["service-expeditions ⭐", "8083", "Colis + suivi (cœur)", "Shipment, TrackingEntry"],
+            ["service-notification", "8084", "Envoie les mails seulement", "—"],
+            ["service-registry", "8761", "Eureka", "—"],
+            ["gateway", "8080", "Entrée API unique", "—"],
+            ["config-server", "8888", "Config centralisée", "config-repo/"],
+        ],
+        [W * 0.28, W * 0.10, W * 0.32, W * 0.30],
+    ))
+    story.append(P("Schéma mental", "H2Oral"))
+    story.append(P(
+        "<font face='Courier' size='7'>"
+        "Postman → Gateway:8080 → clients | reseau | expeditions | notification<br/>"
+        "expeditions ──Feign──► clients + reseau (lectures / décisions)<br/>"
+        "expeditions ──RabbitMQ (main) ou Kafka (v7)──► notification → Mailpit<br/>"
+        "Tous ↔ Eureka + Config Server"
+        "</font>",
+        "CodeOral"))
+
+    story.append(hr())
+    story.append(P("2. Concepts — à savoir expliquer", "H1Oral"))
+    story.append(table(
+        ["Concept", "En une phrase claire"],
+        [
+            ["Microservice", "1 responsabilité + sa base + déployable seul"],
+            ["Database per Service", "H2 séparées : clientsdb / reseaudb / expeditionsdb"],
+            ["Réf. distante", "Long customerId/routeId — PAS de FK JPA entre services"],
+            ["Eureka", "Annuaire des instances UP ; Feign/Gateway trouvent par nom"],
+            ["Gateway", "Porte d’entrée ; URL /service-clients/... = nom Eureka"],
+            ["Config Server", "Config dans config-repo/, chargée au démarrage"],
+            ["OpenFeign", "Appel HTTP sync typé quand on a besoin de la réponse tout de suite"],
+            ["RabbitMQ (V5/V6)", "File async pour les mails (branche main)"],
+            ["Kafka (V7)", "Events métier + notif ; rétention, multi-consommateurs (branche v7.0)"],
+            ["afterCommit", "Publier le message seulement après commit DB local"],
+            ["Idempotence", "Même requête / même event ≠ 2e colis, 2e claim, 2e mail"],
+            ["Retry", "Réessayer un échec transitoire"],
+            ["Circuit Breaker", "Après trop d’échecs, on coupe les appels un moment"],
+            ["RateLimiter /full", "Limite les consultations enrichies (repli local)"],
+            ["ControllerAdvice", "Erreurs centralisées → 400 / 404 / 503"],
+        ],
+        [W * 0.24, W * 0.76],
+    ))
+
+    story.append(PageBreak())
+    story.append(hr())
+    story.append(P("3. Tous les jalons (Init → V7)", "H1Oral"))
+    story.append(table(
+        ["Jalon", "Ce qu’on a fait", "Branche / tag"],
+        [
+            ["Init", "README + archi + cycle de vie + diagrammes classes", "README"],
+            ["V1", "CRUD Customer, Depot, Route + couches + Postman", "v1.0"],
+            ["V2", "Eureka + Gateway dynamique", "v2.0"],
+            ["V3", "Config Server + config-repo", "v3.0"],
+            ["V4", "Feign + destination/capacité + /full + Claim", "v4.0"],
+            ["V5", "RabbitMQ + Publisher/Consumer + Mailpit", "v5.0 / main"],
+            ["V6", "CB/Retry/timeout + Advice + idempotencyKey", "v6.0 / main"],
+            ["V7", "Kafka event-driven (remplace RabbitMQ)", "v7.0 / v7.0-release"],
+        ],
+        [W * 0.10, W * 0.58, W * 0.32],
+    ))
+    story.append(P("V4 — règles Feign (création colis)", "H2Oral"))
+    story.append(bullets([
+        "Vérifier client ACTIF + encours/plafond",
+        "Vérifier destination (adresse contient villeArrivee) + capacité tournée",
+        "Réserver 1 place avant départ",
+        "Calculer montant côté serveur",
+        "GET /shipments/{id}/full = shipment + customer + route + tracking + claims",
+    ]))
+    story.append(P("V6 — résilience (classe ResilientRequests)", "H2Oral"))
+    story.append(bullets([
+        "Timeout Feign 1s/2s",
+        "Retry + Circuit Breaker + Bulkhead sur <b>service-clients</b> ET <b>service-reseau</b>",
+        "Création en panne → HTTP 503 ; /full peut rester en mode dégradé (cache/null)",
+        "Header <b>idempotencyKey</b> : même clé = 400 « Opération déjà traitée »",
+    ]))
+
+    story.append(hr())
+    story.append(P("4. V7 Kafka — tout comprendre", "H1Oral"))
+    story.append(P(
+        "On part de V6 et on <b>remplace RabbitMQ par Kafka</b>. "
+        "Le projet reste hybride : <b>Feign pour lire/décider</b>, <b>Kafka pour les effets async</b>.",
+        "BodyOral"))
+    story.append(P(
+        "<b>Checkout :</b> <font face='Courier'>git checkout v7.0</font> puis "
+        "<font face='Courier'>docker compose up -d</font> (Kafka + Mailpit + Kafka UI :8090)",
+        "BodyOral"))
+    story.append(table(
+        ["Topic / événement", "De → Vers", "Effet"],
+        [
+            ["shipment.requested", "expeditions → reseau", "Réserver 1 capacité (atomique)"],
+            ["capacity.reserved / rejected", "reseau → expeditions", "Autoriser départ ou rester EN_ATTENTE"],
+            ["shipment.in-transit", "expeditions → reseau", "Valider sans 2e décompte"],
+            ["shipment.delivered", "expeditions → reseau+clients+notif", "Libérer + ↑encours + mail"],
+            ["parcel.returned / lost", "expeditions → reseau+clients+notif", "Libérer + 1 Claim + mail"],
+            ["notification.email.requested", "expeditions → notification", "Envoi mail Mailpit"],
+        ],
+        [W * 0.34, W * 0.32, W * 0.34],
+    ))
+    story.append(Spacer(1, 0.12 * cm))
+    story.append(P("Contraintes V7 (à réciter)", "H2Oral"))
+    story.append(bullets([
+        "Réserver avant départ ; libérer <b>une seule fois</b> (et seulement si réservé)",
+        "Une seule Claim par shipmentId",
+        "Consommateurs idempotents : table <b>processed_event</b> + clé Kafka = shipmentId",
+        "Seul <b>service-notification</b> envoie les mails",
+        "Pas de writes Feign qui contournent Kafka pour capacité/encours",
+    ]))
+    story.append(P("Q — Pourquoi Kafka plutôt que RabbitMQ ?", "QA"))
+    story.append(P(
+        "R — Rétention, rejeu, plusieurs consommateurs indépendants sur le même event "
+        "(reseau + clients + notif). RabbitMQ = file classique OK pour V5 mail simple.",
+        "Ans"))
+    story.append(P("Q — Feign disparaît en V7 ?", "QA"))
+    story.append(P(
+        "R — Non. Feign reste pour lectures/décisions (client, route, /full). "
+        "Kafka porte les traitements différés (capacité, encours, claim, mail).",
+        "Ans"))
+
+    story.append(PageBreak())
+    story.append(hr())
+    story.append(P("5. Grille 1ère évaluation /10 — checklist", "H1Oral"))
+    story.append(P(
+        "Cette grille note <b>V0→V6</b>. Démo sur <b>main / v6.0</b>. "
+        "V7 = hors barème de cette grille, mais <b>inclus dans ce PDF</b> pour tout comprendre.",
+        "BodyOral"))
+    story.append(table(
+        ["#", "Point (1 pt)", "Statut", "Quoi montrer"],
+        [
+            ["1", "V0 Archi + classes + README", f"<font color='{OK}'><b>OK</b></font>", "README mermaid + classDiagram"],
+            ["2", "V1 Couches + DB/service + DTO", f"<font color='{OK}'><b>OK</b></font>", "packages + H2 séparées"],
+            ["3", "V1 CRUD + Postman", f"<font color='{OK}'><b>OK</b></font>", "Postman V1 Clients/Reseau"],
+            ["4", "V2 Eureka UP", f"<font color='{OK}'><b>OK</b></font>", "http://localhost:8761"],
+            ["5", "V2 Gateway dynamique", f"<font color='{OK}'><b>OK</b></font>", "URLs /service-xxx/..."],
+            ["6", "V3 Config Server", f"<font color='{OK}'><b>OK</b></font>", "config-repo/ + :8888"],
+            ["7", "V4 Feign + validations", f"<font color='{OK}'><b>OK</b></font>", "POST /shipments/new"],
+            ["8", "V4 /full enrichi", f"<font color='{OK}'><b>OK</b></font>", "GET .../shipments/{id}/full"],
+            ["9", "V5 Broker + mail", f"<font color='{OK}'><b>OK</b></font>", "livrer → Rabbit → Mailpit"],
+            ["10", "V6 CB/Retry + Advice + idempotence", f"<font color='{OK}'><b>OK</b></font>", "ResilientRequests + 503 + clé"],
         ],
         [W * 0.06, W * 0.34, W * 0.10, W * 0.50],
     ))
-    story.append(Spacer(1, 0.25 * cm))
-    story.append(P(
-        "<b>Verdict audit :</b> les 10 points de la 1ère évaluation sont <b>présents et démontrables</b> "
-        "sur <b>main / v6.0</b>. "
-        "Attention orale : démarre bien la stack RabbitMQ (<b>pas</b> la branche Kafka v7.0 pour ce contrôle).",
-        "Call"))
 
-    # ========== PAR POINT ==========
+    story.append(hr())
+    story.append(P("6. Quoi dire / quoi ouvrir (oral)", "H1Oral"))
+    for title, show, say in [
+        ("V0", "README (schéma + diagrammes classes).", "Les refs distantes sont des IDs, pas des FK. Chaque service a sa base."),
+        ("V1", "Postman create customer/depot/route + code couches.", "Entity→Repo→Service→Controller + DTO/MapStruct + validation."),
+        ("V2 Eureka", "http://localhost:8761 — apps UP.", "Service Discovery : on trouve les instances par nom."),
+        ("V2 Gateway", "GET http://localhost:8080/service-clients/customers", "Routage dynamique via discovery locator."),
+        ("V3", "config-repo/*.properties + Config Server 8888.", "Config externalisée, une source pour tous."),
+        ("V4 Feign", "POST shipment avec adresse contenant villeArrivee.", "Sync : on valide client + tournée avant d’accepter."),
+        ("V4 /full", "GET .../shipments/{id}/full", "DTO composé agrégé via Feign."),
+        ("V5", "livrer → Mailpit + RabbitMQ UI.", "Async : mail découplé, publish après afterCommit."),
+        ("V6", "Même idempotencyKey → 400 ; stopper clients → create → 503.", "Retry/CB protègent ; Advice mappe les erreurs ; clé = idempotence."),
+        ("V7", "Kafka UI topics + create→reserved→depart→livrer.", "Events métier ; capacité atomique ; processed_event ; mail via topic notif."),
+    ]:
+        story.append(P(f"<b>{title}</b> — montrer : {show}", "H2Oral"))
+        story.append(P(f"Dire : « {say} »", "BodyOral"))
+
     story.append(PageBreak())
     story.append(hr())
-    story.append(P("2. Point par point — quoi ouvrir / quoi dire", "H1Oral"))
-
-    # V0
-    story.append(P("Point 1 — V0 Conception", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b> README.md (schéma mermaid + diagrammes de classes + instructions).", "BodyOral"))
-    story.append(P("<b>Dire :</b> « Architecture microservices, chaque service a sa base, les refs distantes sont des IDs (customerId, routeId), pas des FK JPA. »", "BodyOral"))
-    story.append(P("Q : Pourquoi pas de jointure SQL entre services ?", "QA"))
-    story.append(P("R : Database per Service = isolation. On agrège via Feign (ou broker), pas via une base partagée.", "Ans"))
-
-    # V1
-    story.append(P("Point 2 & 3 — V1 Couches + CRUD", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b> arborescence d’un service + Postman Create/List customer, depot, route.", "BodyOral"))
-    story.append(P(
-        "<font face='Courier' size='8'>entite → repository → service → controller · dto + mapper MapStruct · validation @Valid</font>",
-        "CodeOral"))
-    story.append(P("Q : C’est quoi Database per Service ?", "QA"))
-    story.append(P("R : clientsdb, reseaudb, expeditionsdb (H2 mémoire). Un schéma / crash / migration n’impose pas les autres.", "Ans"))
-
-    # V2 Eureka
-    story.append(P("Point 4 — Eureka", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b> http://localhost:8761 — toutes les apps <b>UP</b>.", "BodyOral"))
-    story.append(P("Q : À quoi sert Eureka ?", "QA"))
-    story.append(P("R : Service Discovery. Gateway et Feign trouvent les instances par nom (service-clients) sans IP en dur.", "Ans"))
-
-    # V2 Gateway
-    story.append(P("Point 5 — Gateway", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b> même requête via Gateway :", "BodyOral"))
-    story.append(P(
-        "<font face='Courier' size='8'>GET http://localhost:8080/service-clients/customers</font>",
-        "CodeOral"))
-    story.append(P("Q : Routage dynamique vs statique ?", "QA"))
-    story.append(P("R : Dynamique = discovery locator activé : le préfixe d’URL = nom Eureka en minuscules. Pas besoin d’écrire une route par service à la main.", "Ans"))
-
-    # V3
-    story.append(P("Point 6 — Config Server", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b> dossier config-repo/ + Config Server 8888 + ligne spring.config.import dans une app.", "BodyOral"))
-    story.append(P("Q : Pourquoi externaliser la config ?", "QA"))
-    story.append(P("R : Une seule source (config-repo). On change ports/broker/resilience sans recompiler chaque module.", "Ans"))
-
-    # V4 Feign
-    story.append(P("Point 7 — OpenFeign (création)", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b> POST /shipments/new avec idempotencyKey + body valide (adresse contient villeArrivee).", "BodyOral"))
-    story.append(bullets([
-        "Feign → service-clients : client ACTIF + encours + plafond",
-        "Feign → service-reseau : tournée + capacité + destination",
-        "montantTransport = poids × 10 + 50 (serveur)",
-        "réserve 1 capacité avant départ",
-    ]))
-    story.append(P("Q : Synchrone ou asynchrone ici ?", "QA"))
-    story.append(P("R : Synchrone Feign — on a besoin de la réponse tout de suite pour accepter ou refuser la création.", "Ans"))
-
-    # V4 full
-    story.append(P("Point 8 — Consultation enrichie", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b>", "BodyOral"))
-    story.append(P(
-        "<font face='Courier' size='8'>GET http://localhost:8080/service-expeditions/shipments/{id}/full</font>",
-        "CodeOral"))
-    story.append(P("Réponse = ShipmentFullDto : shipment + customer + route + tracking + claims (agrégation Feign).", "BodyOral"))
-    story.append(P("Q : Pourquoi un DTO composé ?", "QA"))
-    story.append(P("R : Le front reçoit tout en 1 appel. Expéditions garde les IDs ; les détails vivent dans les autres services.", "Ans"))
-
-    # V5
-    story.append(P("Point 9 — V5 Async + mail", "H2Oral"))
-    story.append(P("<b>Quoi montrer :</b> livrer un colis → logs publisher → file RabbitMQ → mail dans http://localhost:8025", "BodyOral"))
-    story.append(P("Q : Pourquoi un broker plutôt que Feign pour le mail ?", "QA"))
-    story.append(P("R : Le mail peut être différé. On découple : si notification est down, le métier (livraison) est déjà commit. Publisher après afterCommit.", "Ans"))
-
-    # V6
-    story.append(P("Point 10 — V6 Résilience + erreurs + idempotence", "H2Oral"))
-    story.append(bullets([
-        "<b>Timeout</b> Feign connect 1s / read 2s",
-        "<b>Retry</b> + <b>Circuit Breaker</b> + Bulkhead sur service-clients ET service-reseau (ResilientRequests)",
-        "<b>ControllerAdvice</b> : IllegalArgument→400, NotFound→404, indispo→503",
-        "<b>Idempotence</b> : header idempotencyKey unique — même clé = « Opération déjà traitée »",
-        "RateLimiter consultation /full (repli local) — bonus pédagogique TP",
-    ]))
-    story.append(P("<b>Démo choc V6 :</b> arrêter service-clients → POST /shipments/new → <b>HTTP 503</b> ; GET /full peut encore marcher avec cache/nulls.", "Call"))
-    story.append(P("Q : Différence Circuit Breaker et Retry ?", "QA"))
-    story.append(P("R : Retry = réessayer un échec transitoire. Circuit Breaker = après trop d’échecs, on coupe les appels un moment pour ne pas saturer le service malade.", "Ans"))
-
-    # ========== DEMO SCRIPT ==========
-    story.append(PageBreak())
-    story.append(hr())
-    story.append(P("3. Scénario démo chronométré (~8 minutes)", "H1Oral"))
-    story.append(P("<b>Avant l’oral</b> : git checkout main (ou v6.0) · docker compose up -d · lancer les 7 apps dans l’ordre.", "BodyOral"))
+    story.append(P("7. Deux scénarios de démo", "H1Oral"))
+    story.append(P("A) Démo 1ère éval — branche main (~8 min)", "H2Oral"))
     story.append(table(
-        ["Min", "Action", "Preuve visuelle"],
+        ["Min", "Action", "Preuve"],
         [
-            ["0:00", "Ouvrir Eureka", "5 services UP"],
-            ["0:40", "Postman : create customer + route", "201 Created"],
-            ["1:30", "POST shipment + header idempotencyKey", "201 + EN_ATTENTE"],
-            ["2:10", "Refaire POST même clé", "400 Opération déjà traitée"],
-            ["2:40", "GET .../shipments/{id}/full", "JSON enrichi"],
-            ["3:30", "POST depart puis livrer", "EN_TRANSIT → LIVRE"],
-            ["4:20", "Mailpit", "Mail « Colis livré »"],
-            ["5:00", "Montrer RabbitMQ UI (queue)", "Message consommé"],
-            ["5:40", "Arrêter clients → create shipment", "503"],
-            ["6:40", "Relancer clients → create OK", "Reprise"],
-            ["7:20", "Questions / diagrammes README", "Classes + refs distantes"],
+            ["0:00", "Eureka", "5 services UP"],
+            ["0:40", "Postman customer + route", "201"],
+            ["1:30", "POST shipment + idempotencyKey", "201 EN_ATTENTE"],
+            ["2:10", "Même clé", "400 déjà traitée"],
+            ["2:40", "GET /full", "JSON enrichi"],
+            ["3:30", "depart → livrer", "LIVRE"],
+            ["4:20", "Mailpit", "Mail livré"],
+            ["5:00", "RabbitMQ UI", "Queue consommée"],
+            ["5:40", "Stop clients → create", "503"],
+            ["6:40", "Questions / README classes", "Refs distantes"],
         ],
-        [W * 0.10, W * 0.48, W * 0.42],
+        [W * 0.10, W * 0.50, W * 0.40],
     ))
-
-    story.append(P("Ordre démarrage", "H2Oral"))
+    story.append(P("B) Démo V7 Kafka — branche v7.0 (~6 min)", "H2Oral"))
+    story.append(table(
+        ["Min", "Action", "Preuve"],
+        [
+            ["0:00", "Kafka UI http://localhost:8090", "Cluster online + topics"],
+            ["0:40", "Create customer + route + shipment", "EN_ATTENTE"],
+            ["1:20", "Attendre capacité", "topic reserved / capaciteReservee"],
+            ["2:00", "depart", "EN_TRANSIT + in-transit"],
+            ["2:40", "livrer OU retour", "delivered/returned + Claim si retour"],
+            ["3:40", "Mailpit", "Mail"],
+            ["4:20", "Topics : requested, reserved, delivered…", "Compteurs messages"],
+            ["5:00", "Expliquer processed_event + clé shipmentId", "Idempotence conso"],
+        ],
+        [W * 0.10, W * 0.50, W * 0.40],
+    ))
+    story.append(P("Démarrage", "H2Oral"))
     story.append(P(
-        "<font face='Courier' size='8'>"
-        "docker compose up -d<br/>"
-        "config-server → service-registry → gateway → clients → reseau → expeditions → notification"
+        "<font face='Courier' size='7'>"
+        "# V5/V6<br/>git checkout main &amp;&amp; docker compose up -d<br/>"
+        "# V7<br/>git checkout v7.0 &amp;&amp; docker compose up -d<br/><br/>"
+        "Ordre apps : config-server → registry → gateway → clients → reseau → expeditions → notification"
         "</font>",
         "CodeOral"))
 
-    # ========== CONCEPTS CHEAT ==========
     story.append(hr())
-    story.append(P("4. Aide-mémoire concepts (réponses courtes)", "H1Oral"))
-    story.append(table(
-        ["Concept", "En une phrase"],
-        [
-            ["Microservice", "Un service = une responsabilité + sa propre base + déployable seul"],
-            ["Eureka", "Annuaire des instances vivantes"],
-            ["Gateway", "Porte d’entrée unique + routage"],
-            ["Config Server", "Config centralisée versionnée"],
-            ["OpenFeign", "Client HTTP typé sync entre services"],
-            ["RabbitMQ", "File de messages async (V5/V6)"],
-            ["Idempotence", "Rejouer la même requête ne crée pas un 2e effet"],
-            ["Circuit Breaker", "Coupe le circuit si le distant est en panne"],
-            ["afterCommit", "Publier le message seulement après commit DB local"],
-            ["Réf. distante", "Long customerId/routeId — pas de @ManyToOne cross-DB"],
-        ],
-        [W * 0.22, W * 0.78],
-    ))
-
-    # ========== FORMULES ==========
-    story.append(P("Formules / règles métier à réciter", "H2Oral"))
-    story.append(bullets([
-        "Colis = 1 expéditeur + 1 destinataire + 1 tournée + 1 n° suivi",
-        "Cycle : EN_ATTENTE → EN_TRANSIT → LIVRE | RETOUR | PERDU",
-        "montantTransport = poids × 10 + 50",
-        "Réserver capacité avant départ ; libérer <b>une seule fois</b> à la fin",
-        "Retour/Perdu → une seule Claim",
-    ]))
-
-    # ========== CLASS DIAGRAMS TEXT ==========
-    story.append(PageBreak())
-    story.append(hr())
-    story.append(P("5. Diagrammes de classes — version orale", "H1Oral"))
+    story.append(P("8. Diagrammes de classes (oral / tableau)", "H1Oral"))
     story.append(P(
-        "À dessiner au tableau si demandé. Les flèches pointillées = références distantes (ID), pas JPA.",
-        "BodyOral"))
-    story.append(P(
-        "<font face='Courier' size='7.5'>"
-        "service-clients<br/>"
-        "  Customer(id, nom, email, encours, plafondCredit, statut)<br/>"
-        "  Claim(id, customerId, shipmentId*, description, montant, statut)<br/>"
-        "  *shipmentId → service-expeditions<br/><br/>"
-        "service-reseau<br/>"
-        "  Depot(id, nom, ville, capacite)<br/>"
-        "  Route(id, nom, villeDepart, villeArrivee, dateDepart, dureeEstimee, capaciteColis, capaciteReservee)<br/><br/>"
-        "service-expeditions<br/>"
-        "  Shipment(id, customerId*, destinataireNom, adresseDestinataire, poids, routeId*, montantTransport, numeroSuivi, statut, idempotencyKey)<br/>"
-        "  TrackingEntry(id, shipmentId, date, localisation, commentaire)<br/>"
-        "  *customerId → service-clients · *routeId → service-reseau"
+        "<font face='Courier' size='7'>"
+        "clients: Customer —&lt; Claim(customerId, shipmentId*)    *→ expeditions<br/>"
+        "reseau:  Depot · Route(capaciteColis, capaciteReservee)<br/>"
+        "expeditions: Shipment(customerId*, routeId*, idempotencyKey) —&lt; TrackingEntry<br/>"
+        "             *→ clients / reseau (IDs, pas FK JPA)"
         "</font>",
         "CodeOral"))
 
-    # ========== Q BANK ==========
     story.append(hr())
-    story.append(P("6. Banque de questions probables + réponses", "H1Oral"))
-
-    qa = [
-        ("Explique ton architecture en 1 minute.",
-         "3 services métier + notification + Eureka + Gateway + Config. Expéditions est le cœur. Sync Feign, async RabbitMQ pour les mails."),
-        ("Montre-moi une référence distante.",
-         "Shipment.customerId : Long stocké localement. Pas de @ManyToOne vers Customer. On hydrate via Feign au /full."),
-        ("Que se passe-t-il à la création d’un colis ?",
-         "Vérif idempotence → Feign client → Feign route/destination/capacité → calcul montant → réserve capacité → save EN_ATTENTE."),
-        ("Comment testes-tu ?",
-         "Collection Postman versionnée : CRUD V1, flux V4, idempotence/résilience V6, mails après livrer."),
-        ("Différence V5 et V7 ?",
-         "V5 = RabbitMQ (évalué ici sur main). V7 = Kafka event-driven sur branche v7.0 (hors focus si le contrôle s’arrête à V6)."),
-        ("Où est le RateLimiter ?",
-         "Sur getFull (consultation enrichie), Resilience4j, conforme TP V6 — pas Redis Gateway."),
-        ("Comment évites-tu les doubles mails / doubles claims ?",
-         "afterCommit + en V6 logique métier ; Claim unique par shipmentId ; en V7 processed_event."),
-        ("Gateway sans Eureka ?",
-         "Le discovery locator ne trouverait plus les services → 503 / unable to find instance."),
-    ]
-    for q, a in qa:
+    story.append(P("9. Banque Q/R (prof)", "H1Oral"))
+    for q, a in [
+        ("Architecture en 1 minute ?", "3 services métier + notif + Eureka + Gateway + Config. Expéditions = cœur. Feign sync, broker async."),
+        ("Pourquoi pas de jointure SQL ?", "Database per Service. On agrège via Feign ou events, pas une base partagée."),
+        ("Montre une référence distante.", "Shipment.customerId : Long local. Hydraté via Feign au /full."),
+        ("Création d’un colis — étapes ?", "Idempotence → Feign client → Feign route/destination/capacité → montant → réserve → save EN_ATTENTE."),
+        ("Pourquoi broker pour le mail ?", "Découplage : livraison commitée même si notif down. Publish afterCommit."),
+        ("CB vs Retry ?", "Retry = échec transitoire. CB = trop d’échecs → on ouvre le circuit."),
+        ("Idempotence ?", "idempotencyKey unique à la création. En V7 : processed_event par eventId."),
+        ("Différence main et v7.0 ?", "main = RabbitMQ (V5/V6). v7.0 = Kafka events capacité/encours/claim/mail."),
+        ("En V7, Feign disparaît ?", "Non : lectures/décisions en Feign ; writes métier async en Kafka."),
+        ("Libérer capacité une seule fois ?", "Sinon on fausse le stock de places. V7 tracke l’affectation par shipment."),
+        ("Gateway sans Eureka ?", "Plus d’instances trouvées → erreurs 503 / service unavailable."),
+        ("Où est le RateLimiter ?", "Sur getFull (/full), Resilience4j — conforme TP V6."),
+    ]:
         story.append(P(f"Q — {q}", "QA"))
         story.append(P(f"R — {a}", "Ans"))
 
-    # ========== CHECKLIST JOUR J ==========
-    story.append(Spacer(1, 0.3 * cm))
+    story.append(PageBreak())
     story.append(hr())
-    story.append(P("7. Checklist jour J", "H1Oral"))
-    story.append(bullets([
-        "Branche <b>main</b> / tag <b>v6.0</b> (RabbitMQ)",
-        "Docker UP (RabbitMQ + Mailpit)",
-        "7 apps démarrées, Eureka vert",
-        "Postman collection importée, variables gateway=http://localhost:8080",
-        "README ouvert (architecture + diagrammes classes)",
-        "Mailpit onglet prêt ; savoir arrêter service-clients pour le 503",
-        "Ce PDF / EXPLICATION-PROJET.md sous la main",
-    ]))
+    story.append(P("10. Classroom + jour J", "H1Oral"))
     story.append(P(
-        "<b>Liens rapides :</b> Eureka 8761 · Gateway 8080 · RabbitMQ 15672 (tp/tp123) · Mailpit 8025 · "
-        "Postman postman/Quick-Ship.postman_collection.json · Grille docs/Grille d'Évaluation…pdf",
+        "<font face='Courier' size='7'>"
+        "Projet Quick-Ship (Fiche 16)<br/>"
+        "Repo: https://github.com/Badr0h/quick-ship<br/>"
+        "Jalon: v6.0   Lien: https://github.com/Badr0h/quick-ship/tree/v6.0<br/>"
+        "Postman: postman/Quick-Ship.postman_collection.json<br/><br/>"
+        "# V7<br/>"
+        "Jalon: v7.0   Branche: https://github.com/Badr0h/quick-ship/tree/v7.0"
+        "</font>",
+        "CodeOral"))
+    story.append(P("Checklist jour J", "H2Oral"))
+    story.append(bullets([
+        "Savoir si le devoir = grille V6 (main) ou Kafka (v7.0)",
+        "Docker UP + 7 apps + Eureka vert",
+        "Postman importé (gateway http://localhost:8080)",
+        "README + ce PDF ouverts",
+        "Mailpit / RabbitMQ UI ou Kafka UI prêts",
+        "Savoir faire le 503 (stop clients) et le doublon idempotencyKey",
+        "Réciter cycle de vie + formule montant + règle capacité",
+    ]))
+    story.append(P("Fichiers utiles", "H2Oral"))
+    story.append(table(
+        ["Fichier", "Pour quoi"],
+        [
+            ["docs/PRET-ORAL-1ERE-EVALUATION.pdf", "CE DOCUMENT (tout V0→V7)"],
+            ["docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf", "Même contenu (nom clair)"],
+            ["README.md", "Archi + diagrammes classes"],
+            ["DEPOSER-CLASSROOM.md", "Liens à coller"],
+            ["docs/fiche-quick-ship.md", "Énoncé Fiche 16"],
+            ["postman/Quick-Ship.postman_collection.json", "Scénarios test"],
+        ],
+        [W * 0.48, W * 0.52],
+    ))
+    story.append(Spacer(1, 0.2 * cm))
+    story.append(P(
+        "<b>Liens live :</b> Eureka :8761 · Gateway :8080 · RabbitMQ :15672 (tp/tp123) · "
+        "Kafka UI :8090 · Mailpit :8025",
         "Call"))
     story.append(P(
-        "Document généré pour la 1ère évaluation. V7 Kafka = suite (autre branche) — à mentionner seulement si le prof demande.",
+        "Stack : Java 17 · Spring Boot 3.5.6 · Spring Cloud 2025.0.0 · H2 · MapStruct · "
+        "Resilience4j · RabbitMQ / Kafka · Mailpit",
         "CoverSub"))
 
-    doc.build(story, onFirstPage=footer, onLaterPages=footer)
-    print(f"PDF: {OUT}")
-    return OUT
+    def write(path):
+        doc = SimpleDocTemplate(
+            str(path), pagesize=A4,
+            leftMargin=1.5 * cm, rightMargin=1.5 * cm,
+            topMargin=1.3 * cm, bottomMargin=1.6 * cm,
+            title="Quick-Ship — Tout comprendre V0→V7",
+            author="Quick-Ship Fiche 16",
+        )
+        doc.build(list(story), onFirstPage=footer, onLaterPages=footer)
+        print(f"PDF: {path}")
+
+    write(OUT)
+    shutil.copy2(OUT, OUT2)
+    print(f'PDF: {OUT2}')
 
 
 if __name__ == "__main__":
     build()
-

@@ -4,9 +4,9 @@
 **Sujet :** Fiche 16 — Quick-Ship  
 **État :** code prêt à déposer (V1→V6 sur `main`, V7 sur branche `v7.0`)
 
-**Guide PDF à lire / imprimer :** [`docs/GUIDE-COMPLET-QUICK-SHIP.pdf`](docs/GUIDE-COMPLET-QUICK-SHIP.pdf)  
-**PDF prêt oral (grille /10) :** [`docs/PRET-ORAL-1ERE-EVALUATION.pdf`](docs/PRET-ORAL-1ERE-EVALUATION.pdf)  
-(checklist, quoi montrer, Q/R, scénario démo 8 min)
+**PDF TOUT COMPRENDRE (V0→V7 + oral) :**  
+[`docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf`](docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf)  
+(= même contenu que [`docs/PRET-ORAL-1ERE-EVALUATION.pdf`](docs/PRET-ORAL-1ERE-EVALUATION.pdf))
 
 ---
 
