@@ -4,9 +4,8 @@
 **Sujet :** Fiche 16 — Quick-Ship  
 **État :** code prêt à déposer (V1→V6 sur `main`, V7 sur branche `v7.0`)
 
-**PDF TOUT COMPRENDRE (V0→V7 + oral) :**  
-[`docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf`](docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf)  
-**Diagrammes (images) :** [`docs/DIAGRAMMES-QUICK-SHIP.pdf`](docs/DIAGRAMMES-QUICK-SHIP.pdf) · PNG [`docs/diagrams/`](docs/diagrams/)
+**PDF unique V0→V7 (résumés + diagrammes) :**  
+[`docs/QUICK-SHIP-V0-V7.pdf`](docs/QUICK-SHIP-V0-V7.pdf)
 
 ---
 

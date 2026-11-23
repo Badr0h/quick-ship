@@ -176,8 +176,7 @@ Tests : importer `postman/Quick-Ship.postman_collection.json`
 
 | Élément | Chemin |
 |---------|--------|
-| **PDF TOUT COMPRENDRE (V0→V7 + oral)** | [`docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf`](docs/GUIDE-TOUT-COMPRENDRE-QUICK-SHIP.pdf) |
-| **Même PDF (alias oral)** | [`docs/PRET-ORAL-1ERE-EVALUATION.pdf`](docs/PRET-ORAL-1ERE-EVALUATION.pdf) |
+| **PDF unique V0→V7** | [`docs/QUICK-SHIP-V0-V7.pdf`](docs/QUICK-SHIP-V0-V7.pdf) |
 | Guide dépôt Classroom | `DEPOSER-CLASSROOM.md` |
 | Conception / archi | `README.md` |
 | Fiche sujet | `docs/fiche-quick-ship.md` |
