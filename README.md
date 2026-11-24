@@ -122,27 +122,64 @@ classDiagram
 - Maven 3.9+
 - Docker (Kafka KRaft + Mailpit)
 
-## Démarrage
+## Démarrage (contrôle / démo)
+
+> **Docker ≠ Eureka.**  
+> Docker = infra seulement (Mailpit + Kafka + Kafka UI).  
+> Eureka et les services métier = apps Spring lancées **à la main** (IntelliJ ou Maven), comme dans les TP.
+
+### 1. Infra Docker
 
 ```bash
 docker compose up -d
 ```
 
-Ordre recommandé des apps Spring Boot :
+Vérifier : 3 conteneurs UP — `mailpitx`, `kafka`, `kafka-ui`.
 
-1. `config-server` (8888)
-2. `service-registry` (8761)
-3. `gateway` (8080)
-4. `service-clients` (8081)
-5. `service-reseau` (8082)
-6. `service-expeditions` (8083)
-7. `service-notification` (8084)
+### 2. Apps Spring — ordre obligatoire
 
-Interfaces utiles :
+Lancer **une par une** (Run dans IntelliJ, ou `mvn spring-boot:run` dans chaque module) :
 
-- Eureka : http://localhost:8761
-- Kafka UI : http://localhost:8090
-- Mailpit : http://localhost:8025
+| # | Module | Port | Rôle |
+|---|--------|------|------|
+| 1 | `config-server` | 8888 | Config centralisée |
+| 2 | **`service-registry`** | **8761** | **Eureka** ← lancer tôt, ouvrir ensuite |
+| 3 | `gateway` | 8080 | Entrée API |
+| 4 | `service-clients` | 8081 | Clients / claims |
+| 5 | `service-reseau` | 8082 | Dépôts / tournées |
+| 6 | `service-expeditions` | 8083 | Colis (cœur) |
+| 7 | `service-notification` | 8084 | Mails |
+
+Exemple Maven (depuis la racine du repo) :
+
+```bash
+cd config-server && mvn spring-boot:run
+cd service-registry && mvn spring-boot:run
+cd gateway && mvn spring-boot:run
+cd service-clients && mvn spring-boot:run
+cd service-reseau && mvn spring-boot:run
+cd service-expeditions && mvn spring-boot:run
+cd service-notification && mvn spring-boot:run
+```
+
+Astuce IntelliJ : créer une **Compound** Run Configuration qui lance les 7 apps (toujours locales, conforme TP).
+
+### 3. Voir que tout est UP → Eureka
+
+Ouvre : **http://localhost:8761**
+
+Tu dois voir les instances **UP** : `CONFIG-SERVER`, `GATEWAY`, `SERVICE-CLIENTS`, `SERVICE-RESEAU`, `SERVICE-EXPEDITIONS`, `SERVICE-NOTIFICATION` (les noms exacts = `spring.application.name`).
+
+Si Eureka est vide / timeout → `service-registry` n’est pas démarré, ou les autres apps n’ont pas encore fini de s’enregistrer (attends ~20–30 s).
+
+### 4. Interfaces utiles
+
+| URL | Pour quoi |
+|-----|-----------|
+| http://localhost:8761 | **Eureka** — preuve « tout est UP » |
+| http://localhost:8080 | Gateway (Postman passe par ici) |
+| http://localhost:8090 | Kafka UI (branche `v7.0`) |
+| http://localhost:8025 | Mailpit (mails de test) |
 
 ## Règles métier clés (V7 Kafka)
 
